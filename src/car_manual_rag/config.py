@@ -31,3 +31,4 @@ CATALOG = ROOT / CATALOG_NAME
 DATA = ROOT / "data"
 PDF_DIR = DATA / "raw" / "pdf"
 TEXT_DIR = DATA / "interim" / "text"
+CHUNK_DIR = DATA / "interim" / "chunks"

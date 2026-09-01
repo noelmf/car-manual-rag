@@ -1,3 +1,4 @@
 [console_scripts]
+crag-chunk = car_manual_rag.ingest.chunk:main
 crag-download = car_manual_rag.ingest.download:main
 crag-extract = car_manual_rag.ingest.text:main
