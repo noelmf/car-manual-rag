@@ -1,0 +1,3 @@
+[console_scripts]
+crag-download = car_manual_rag.ingest.download:main
+crag-extract = car_manual_rag.ingest.text:main

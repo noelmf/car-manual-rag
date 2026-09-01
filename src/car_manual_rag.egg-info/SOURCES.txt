@@ -1,0 +1,12 @@
+pyproject.toml
+src/car_manual_rag/__init__.py
+src/car_manual_rag/config.py
+src/car_manual_rag.egg-info/PKG-INFO
+src/car_manual_rag.egg-info/SOURCES.txt
+src/car_manual_rag.egg-info/dependency_links.txt
+src/car_manual_rag.egg-info/entry_points.txt
+src/car_manual_rag.egg-info/requires.txt
+src/car_manual_rag.egg-info/top_level.txt
+src/car_manual_rag/ingest/__init__.py
+src/car_manual_rag/ingest/download.py
+src/car_manual_rag/ingest/text.py

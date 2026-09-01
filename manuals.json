@@ -377,19 +377,6 @@
       "Ibiza"
     ],
     "year": [
-      "2012"
-    ],
-    "edition": [
-      "02.11"
-    ],
-    "url": "https://www.seat.es/datamanual-manual/ibiza/my12_w22/es-es/Ibiza_ES.pdf"
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Ibiza"
-    ],
-    "year": [
       "2011"
     ],
     "edition": [
@@ -955,19 +942,6 @@
       "Leon"
     ],
     "year": [
-      "2012"
-    ],
-    "edition": [
-      "02.11"
-    ],
-    "url": "https://www.seat.es/datamanual-manual/leon/my12_w22/es-es/leon_ES.pdf"
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Leon"
-    ],
-    "year": [
       "2011"
     ],
     "edition": [
@@ -1156,19 +1130,6 @@
       "11.24"
     ],
     "url": "https://www.seat.es/datamanual-manual/manuals/seat/es-es/SEAT_Arona_11_24_ES.pdf"
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Arona"
-    ],
-    "year": [
-      "2025"
-    ],
-    "edition": [
-      "09.24"
-    ],
-    "url": null
   },
   {
     "brand": "SEAT",
@@ -1390,19 +1351,6 @@
       "11.24"
     ],
     "url": "https://www.seat.es/datamanual-manual/manuals/seat/es-es/SEAT_Ateca_11_24_ES.pdf"
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Ateca"
-    ],
-    "year": [
-      "2025"
-    ],
-    "edition": [
-      "09.24"
-    ],
-    "url": null
   },
   {
     "brand": "SEAT",
@@ -2388,19 +2336,6 @@
       "2008"
     ],
     "edition": [
-      "07.07"
-    ],
-    "url": "https://www.seat.es/datamanual-manual/toledo/my08_w45/es-es/MI%20TOLEDO%2007%2007_ES.pdf"
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Toledo"
-    ],
-    "year": [
-      "2008"
-    ],
-    "edition": [
       "02.07"
     ],
     "url": "https://www.seat.es/datamanual-manual/toledo/my08_w22/es-es/MI%20TOLEDO%2002%2007_ES.pdf"
@@ -2658,23 +2593,6 @@
       "Ibiza SC"
     ],
     "year": [
-      "2017",
-      "2016"
-    ],
-    "edition": [
-      "11.16",
-      "05.16",
-      "11.15",
-      "05.15"
-    ],
-    "url": null
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Ibiza SC"
-    ],
-    "year": [
       "2014"
     ],
     "edition": [
@@ -2707,19 +2625,6 @@
       "12.11"
     ],
     "url": "https://www.seat.es/datamanual-manual/ibiza_sc/my12_w45/es-es/IbizaSC_ES.pdf"
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Ibiza SC"
-    ],
-    "year": [
-      "2012"
-    ],
-    "edition": [
-      "02.11"
-    ],
-    "url": "https://www.seat.es/datamanual-manual/ibiza_sc/my12_w22/es-es/ibizaSC_ES.pdf"
   },
   {
     "brand": "SEAT",
@@ -2792,19 +2697,6 @@
       "Ibiza ST"
     ],
     "year": [
-      "2017"
-    ],
-    "edition": [
-      "05.16"
-    ],
-    "url": null
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Ibiza ST"
-    ],
-    "year": [
       "2014"
     ],
     "edition": [
@@ -2837,19 +2729,6 @@
       "12.11"
     ],
     "url": "https://www.seat.es/datamanual-manual/ibiza_st/my12_w45/es-es/IbizaST_ES.pdf"
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Ibiza ST"
-    ],
-    "year": [
-      "2012"
-    ],
-    "edition": [
-      "02.11"
-    ],
-    "url": "https://www.seat.es/datamanual-manual/ibiza_st/my12_w22/es-es/ibizaST_ES.pdf"
   },
   {
     "brand": "SEAT",
@@ -2986,19 +2865,6 @@
       "07.11"
     ],
     "url": "https://www.seat.es/datamanual-manual/altea/my12_w45/es-es/Altea_ES.pdf"
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Altea"
-    ],
-    "year": [
-      "2012"
-    ],
-    "edition": [
-      "02.11"
-    ],
-    "url": "https://www.seat.es/datamanual-manual/altea/my12_w22/es-es/altea_ES.pdf"
   },
   {
     "brand": "SEAT",
@@ -3201,19 +3067,6 @@
       "Altea XL"
     ],
     "year": [
-      "2012"
-    ],
-    "edition": [
-      "02.11"
-    ],
-    "url": "https://www.seat.es/datamanual-manual/altea_xl/my12_w22/es-es/AlteaXL_ES.pdf"
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Altea XL"
-    ],
-    "year": [
       "2011"
     ],
     "edition": [
@@ -3383,19 +3236,6 @@
       "Altea Freetrack"
     ],
     "year": [
-      "2012"
-    ],
-    "edition": [
-      "02.11"
-    ],
-    "url": "https://www.seat.es/datamanual-manual/altea_freetrack/my12_w22/es-es/AlteaFreetrack_ES.pdf"
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Altea Freetrack"
-    ],
-    "year": [
       "2011"
     ],
     "edition": [
@@ -3539,19 +3379,6 @@
       "Exeo"
     ],
     "year": [
-      "2012"
-    ],
-    "edition": [
-      "02.11"
-    ],
-    "url": "https://www.seat.es/datamanual-manual/exeo/my12_w22/es-es/exeo_ES.pdf"
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Exeo"
-    ],
-    "year": [
       "2011"
     ],
     "edition": [
@@ -3662,19 +3489,6 @@
       "07.11"
     ],
     "url": "https://www.seat.es/datamanual-manual/exeo_st/my12_w45/es-es/ExeoST_ES.pdf"
-  },
-  {
-    "brand": "SEAT",
-    "model": [
-      "Exeo ST"
-    ],
-    "year": [
-      "2012"
-    ],
-    "edition": [
-      "02.11"
-    ],
-    "url": "https://www.seat.es/datamanual-manual/exeo_st/my12_w22/es-es/exeo_ST_ES.pdf"
   },
   {
     "brand": "SEAT",

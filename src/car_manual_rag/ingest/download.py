@@ -8,9 +8,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
-CATALOG = ROOT / "manuals.json"
-DEST = ROOT / "data" / "raw" / "pdf"
+from car_manual_rag.config import CATALOG, PDF_DIR
 
 PAUSE = 1.0 # seconds between downloads
 RETRIES = 4
@@ -73,7 +71,7 @@ def main():
     p.add_argument("--limit", type=int, help="download only the first N manuals")
     p.add_argument("--pause", type=float, default=PAUSE,
                    help="seconds to wait between downloads")
-    p.add_argument("--dest", type=Path, default=DEST, help="output directory")
+    p.add_argument("--dest", type=Path, default=PDF_DIR, help="output directory")
     args = p.parse_args()
 
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
