@@ -9,6 +9,7 @@ dependencies = ["pymupdf>=1.24"]
 crag-download = "car_manual_rag.ingest.download:main"
 crag-extract = "car_manual_rag.ingest.text:main"
 crag-chunk = "car_manual_rag.ingest.chunk:main"
+crag-catalog = "car_manual_rag.ingest.catalog:main"
 
 [build-system]
 requires = ["setuptools>=68"]

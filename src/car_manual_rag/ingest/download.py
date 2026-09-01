@@ -1,7 +1,6 @@
 """Download the catalogue PDFs (manuals.json) into data/raw/pdf/."""
 import argparse
 import json
-import re
 import sys
 import time
 import urllib.error
@@ -9,22 +8,11 @@ import urllib.request
 from pathlib import Path
 
 from car_manual_rag.config import CATALOG, PDF_DIR
+from car_manual_rag.ingest.catalog import manual_id
 
 PAUSE = 1.0 # seconds between downloads
 RETRIES = 4
 UA = "Mozilla/5.0 (compatible; car-manual-rag/0.1)"
-
-
-def slug(text):
-    """Make a model name safe for a filename: 'Leon SC' -> 'Leon-SC'."""
-    return re.sub(r"[^A-Za-z0-9]+", "-", text).strip("-")
-
-
-def key(manual):
-    """The manual's key: brand, model(s) and edition(s)."""
-    models = "+".join(slug(m) for m in manual["model"])
-    editions = "+".join(manual["edition"])
-    return f"{manual['brand']}_{models}_{editions}"
 
 
 def download(url, path):
@@ -84,7 +72,7 @@ def main():
     # each other silently.
     keys = {}
     for m in with_pdf:
-        keys.setdefault(key(m), []).append(m)
+        keys.setdefault(manual_id(m), []).append(m)
     clashes = {k: v for k, v in keys.items() if len(v) > 1}
     if clashes:
         print(f"ERROR: {len(clashes)} duplicate keys, they do not identify a single PDF:")
@@ -104,7 +92,7 @@ def main():
     started = time.time()
 
     for i, m in enumerate(pending, 1):
-        path = args.dest / f"{key(m)}.pdf"
+        path = args.dest / f"{manual_id(m)}.pdf"
         label = f"[{i}/{len(pending)}] {path.name}"
         if path.exists() and path.stat().st_size > 0:
             skipped += 1

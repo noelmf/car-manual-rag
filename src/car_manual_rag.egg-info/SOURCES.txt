@@ -8,6 +8,7 @@ src/car_manual_rag.egg-info/entry_points.txt
 src/car_manual_rag.egg-info/requires.txt
 src/car_manual_rag.egg-info/top_level.txt
 src/car_manual_rag/ingest/__init__.py
+src/car_manual_rag/ingest/catalog.py
 src/car_manual_rag/ingest/chunk.py
 src/car_manual_rag/ingest/download.py
 src/car_manual_rag/ingest/text.py
