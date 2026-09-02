@@ -5,6 +5,9 @@ description = "RAG over car owner's manuals"
 requires-python = ">=3.10"
 dependencies = ["pymupdf>=1.24", "numpy>=1.26"]
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
 [project.scripts]
 crag-download = "car_manual_rag.ingest.download:main"
 crag-extract = "car_manual_rag.ingest.text:main"
@@ -19,3 +22,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
