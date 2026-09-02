@@ -3,13 +3,15 @@ name = "car-manual-rag"
 version = "0.1.0"
 description = "RAG over car owner's manuals"
 requires-python = ">=3.10"
-dependencies = ["pymupdf>=1.24"]
+dependencies = ["pymupdf>=1.24", "numpy>=1.26"]
 
 [project.scripts]
 crag-download = "car_manual_rag.ingest.download:main"
 crag-extract = "car_manual_rag.ingest.text:main"
 crag-chunk = "car_manual_rag.ingest.chunk:main"
 crag-catalog = "car_manual_rag.ingest.catalog:main"
+crag-index = "car_manual_rag.index:main"
+crag-ask = "car_manual_rag.ask:main"
 
 [build-system]
 requires = ["setuptools>=68"]

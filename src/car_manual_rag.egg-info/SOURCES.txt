@@ -1,6 +1,10 @@
 pyproject.toml
 src/car_manual_rag/__init__.py
+src/car_manual_rag/ask.py
 src/car_manual_rag/config.py
+src/car_manual_rag/embed.py
+src/car_manual_rag/gemini.py
+src/car_manual_rag/index.py
 src/car_manual_rag.egg-info/PKG-INFO
 src/car_manual_rag.egg-info/SOURCES.txt
 src/car_manual_rag.egg-info/dependency_links.txt

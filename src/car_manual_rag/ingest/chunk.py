@@ -42,7 +42,8 @@ MIN_REPEATS = 5          # times a line must repeat there to count as chrome
 NAV_RATIO = 0.3          # share of dotted-leader lines that marks a nav page
 
 DOTTED = re.compile(r"\.\s*\.\s*\.\s*\.")           # table-of-contents leaders
-PRIVATE_USE = re.compile(r"[\ue000-\uf8ff]")        # icon-font placeholders
+NON_TEXT = re.compile(r"[\ue000-\uf8ff\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")  # icon-font glyphs and control chars
+TITLE = re.compile(r"\w")                           # a section title has letters; a glyph does not
 PAGE_NUMBER = re.compile(r"\d{1,4}")
 HYPHEN_WRAP = re.compile(r"(\w)-\n(\w)")
 BULLET = re.compile(r"^\s*[●▪•–-]\s*")
@@ -50,8 +51,8 @@ FIGURE = re.compile(r"^Fig\.\s*\d")
 
 
 def lines_of(text):
-    """The page's non-empty lines, stripped of icon glyphs."""
-    return [l.strip() for l in PRIVATE_USE.sub(" ", text).split("\n") if l.strip()]
+    """The page's non-empty lines, stripped of anything unreadable."""
+    return [l.strip() for l in NON_TEXT.sub(" ", text).split("\n") if l.strip()]
 
 
 def is_nav(lines):
@@ -88,7 +89,10 @@ def strip_chrome(lines, chrome):
         if at_edge and PAGE_NUMBER.fullmatch(line):
             printed = printed or line
         elif at_edge and line in chrome:
-            section = section or line
+            # Decorative glyphs ('>>', bullets) repeat at page edges too, so
+            # they are stripped like any chrome -- but they are not a title.
+            if section is None and TITLE.search(line):
+                section = line
         else:
             keep.append(line)
     return keep, section, printed

@@ -4,3 +4,4 @@ Version: 0.1.0
 Summary: RAG over car owner's manuals
 Requires-Python: >=3.10
 Requires-Dist: pymupdf>=1.24
+Requires-Dist: numpy>=1.26
