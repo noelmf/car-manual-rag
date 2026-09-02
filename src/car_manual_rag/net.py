@@ -4,12 +4,13 @@ Downloading a PDF and calling an API are different jobs, but they fail the same
 way -- rate limits, gateway errors, a connection that drops -- and there should
 be one answer to that, not one per caller.
 """
+
 import time
 import urllib.error
 import urllib.request
 
 RETRIES = 4
-RETRY_CODES = (429, 500, 502, 503, 504)    # a 400 or a 401 will not improve
+RETRY_CODES = (429, 500, 502, 503, 504)  # a 400 or a 401 will not improve
 
 
 def fetch(request, timeout, retries=RETRIES, note=None, asked_wait=None):
@@ -28,11 +29,12 @@ def fetch(request, timeout, retries=RETRIES, note=None, asked_wait=None):
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 return response.headers, response.read()
         except urllib.error.HTTPError as e:
-            e.body = e.read()          # read once: the raiser needs it too
+            e.body = e.read()  # read once: the raiser needs it too
             if e.code not in RETRY_CODES or attempt == retries:
                 raise
-            wait = ((asked_wait(e) if asked_wait else None)
-                    or float(e.headers.get("Retry-After") or delay))
+            wait = (asked_wait(e) if asked_wait else None) or float(
+                e.headers.get("Retry-After") or delay
+            )
             reason = f"HTTP {e.code}"
         except (urllib.error.URLError, TimeoutError) as e:
             if attempt == retries:

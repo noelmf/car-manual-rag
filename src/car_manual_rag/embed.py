@@ -7,6 +7,7 @@ Gemini wants to be told whether a text is a stored passage or a question being
 asked, and answers differently to each: that is the 'kind' argument, and
 getting it wrong costs recall silently, so the mapping lives here alone.
 """
+
 import collections
 import time
 
@@ -15,9 +16,9 @@ from car_manual_rag.gemini import call
 
 KINDS = {"passage": "RETRIEVAL_DOCUMENT", "query": "RETRIEVAL_QUERY"}
 
-DIMS = 768              # Gemini defaults to 3072; 768 keeps an index small
-BATCH = 50              # texts per request; measured to pass reliably
-MAX_CHARS = 80_000      # and under the per-request size limit
+DIMS = 768  # Gemini defaults to 3072; 768 keeps an index small
+BATCH = 50  # texts per request; measured to pass reliably
+MAX_CHARS = 80_000  # and under the per-request size limit
 
 # The free tier allows 100 embed_content requests a minute and counts every
 # text in a batch as one, so a 96-text batch spends 96 of them at once. Pacing
@@ -27,10 +28,10 @@ MAX_CHARS = 80_000      # and under the per-request size limit
 # BATCH has to divide RATE or the budget is wasted: at 50 a second batch would
 # exceed 90, so only one goes out per window and the effective rate is 50/min.
 # Three batches of 30 fill the budget exactly.
-RATE = 1500             # texts a minute; the free tier allows only 90
+RATE = 1500  # texts a minute; the free tier allows only 90
 WINDOW = 60.0
 
-_sent = collections.deque()    # (when, how many), over the last WINDOW seconds
+_sent = collections.deque()  # (when, how many), over the last WINDOW seconds
 
 
 def batches(texts):
@@ -70,9 +71,17 @@ def embed(texts, kind, note=None):
     vectors = []
     for batch in batches(list(texts)):
         pace(len(batch), note)
-        payload = {"requests": [
-            {"model": f"models/{model}", "content": {"parts": [{"text": text}]},
-             "taskType": KINDS[kind], "outputDimensionality": DIMS} for text in batch]}
+        payload = {
+            "requests": [
+                {
+                    "model": f"models/{model}",
+                    "content": {"parts": [{"text": text}]},
+                    "taskType": KINDS[kind],
+                    "outputDimensionality": DIMS,
+                }
+                for text in batch
+            ]
+        }
         reply = call(model, "batchEmbedContents", payload, note)
         vectors.extend(e["values"] for e in reply["embeddings"])
     return vectors

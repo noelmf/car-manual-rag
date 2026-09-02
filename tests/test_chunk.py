@@ -1,4 +1,5 @@
 """The chunker decides the quality of every answer, so it carries the most tests."""
+
 from car_manual_rag.ingest import chunk
 
 
@@ -15,8 +16,9 @@ class TestReflow:
         assert chunk.reflow(["Start-", "Stop activo"]) == ["Start-Stop activo"]
 
     def test_joins_wrapped_lines_into_one_paragraph(self):
-        assert chunk.reflow(["El aire acondicionado enfria", "y deshumedece el aire"]) == \
-               ["El aire acondicionado enfria y deshumedece el aire"]
+        assert chunk.reflow(["El aire acondicionado enfria", "y deshumedece el aire"]) == [
+            "El aire acondicionado enfria y deshumedece el aire"
+        ]
 
     def test_a_bullet_starts_a_new_paragraph(self):
         out = chunk.reflow(["Texto previo", "●Primer paso", "●Segundo paso"])
@@ -42,7 +44,7 @@ class TestChrome:
         # The bug found in 72 manuals: '>>' repeated at a page edge was taken
         # for a chapter title, and citations showed it instead of a section.
         page = ["»", "El aire acondicionado enfria.", "42"]
-        body, section, printed = chunk.strip_chrome(page, {"»"})
+        body, section, _ = chunk.strip_chrome(page, {"»"})
         assert section is None
         assert "»" not in body
 
@@ -59,6 +61,7 @@ class TestChrome:
 class TestNavPages:
     def test_a_contents_page_is_recognised(self):
         from tests.conftest import NAV_PAGE
+
         assert chunk.is_nav(chunk.lines_of(NAV_PAGE["text"]))
 
     def test_a_body_page_is_not(self, pages):
@@ -97,6 +100,7 @@ class TestGrouping:
 class TestUnits:
     def test_nav_pages_are_dropped_and_sections_carry_forward(self, pages):
         from tests.conftest import NAV_PAGE
+
         units, dropped = chunk.units_of(pages * 2 + [NAV_PAGE])
         assert dropped == 1
         assert {u["section"] for u in units} == {"Climatizacion"}

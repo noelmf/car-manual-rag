@@ -1,4 +1,5 @@
 """Download the catalogue PDFs (manuals.json) into data/raw/pdf/."""
+
 import argparse
 import json
 import sys
@@ -10,7 +11,7 @@ from pathlib import Path
 from car_manual_rag.config import CATALOG, PDF_DIR
 from car_manual_rag.ingest.catalog import manual_id
 
-PAUSE = 1.0 # seconds between downloads
+PAUSE = 1.0  # seconds between downloads
 RETRIES = 4
 UA = "Mozilla/5.0 (compatible; car-manual-rag/0.1)"
 
@@ -57,8 +58,7 @@ def main():
     """Run the download; return a shell exit code (0 = every PDF fetched)."""
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--limit", type=int, help="download only the first N manuals")
-    p.add_argument("--pause", type=float, default=PAUSE,
-                   help="seconds to wait between downloads")
+    p.add_argument("--pause", type=float, default=PAUSE, help="seconds to wait between downloads")
     p.add_argument("--dest", type=Path, default=PDF_DIR, help="output directory")
     args = p.parse_args()
 
@@ -83,8 +83,10 @@ def main():
         return 1
 
     pending = with_pdf[: args.limit] if args.limit else with_pdf
-    print(f"{len(catalog)} manuals in the catalogue, {without_pdf} without a PDF, "
-          f"{len(pending)} to process -> {args.dest}")
+    print(
+        f"{len(catalog)} manuals in the catalogue, {without_pdf} without a PDF, "
+        f"{len(pending)} to process -> {args.dest}"
+    )
 
     downloaded = skipped = 0
     failures = []
@@ -109,8 +111,10 @@ def main():
         time.sleep(args.pause)
 
     elapsed = time.time() - started
-    print(f"\nDownloaded {downloaded} ({total_bytes / 1e9:.2f} GB) in {elapsed / 60:.1f} min, "
-          f"{skipped} already present, {len(failures)} failed")
+    print(
+        f"\nDownloaded {downloaded} ({total_bytes / 1e9:.2f} GB) in {elapsed / 60:.1f} min, "
+        f"{skipped} already present, {len(failures)} failed"
+    )
     for name, url, err in failures:
         print(f"  {name}: {err}\n    {url}")
     return 1 if failures else 0

@@ -1,4 +1,5 @@
 """The .env rules are easy to get subtly wrong and impossible to notice."""
+
 import pytest
 
 from car_manual_rag import config
@@ -30,10 +31,15 @@ class TestLoadEnv:
         assert config.required(config.API_KEY) == "del-entorno"
 
     def test_tolerates_export_quotes_comments_and_junk(self, tmp_path):
-        config.load_env(env_file(tmp_path, "# comentario\n\n"
-                                           'export GEMINI_MODEL="un-modelo"\n'
-                                           "GEMINI_EMBEDDING='otro'\n"
-                                           "linea sin igual\n"))
+        config.load_env(
+            env_file(
+                tmp_path,
+                "# comentario\n\n"
+                'export GEMINI_MODEL="un-modelo"\n'
+                "GEMINI_EMBEDDING='otro'\n"
+                "linea sin igual\n",
+            )
+        )
         assert config.required(config.MODEL) == "un-modelo"
         assert config.required(config.EMBEDDING) == "otro"
 
@@ -50,7 +56,7 @@ class TestLoadEnv:
 
 class TestRequired:
     def test_a_missing_setting_names_itself_and_where_to_get_it(self, monkeypatch):
-        monkeypatch.setattr(config, "_loaded", True)     # do not read the real .env
+        monkeypatch.setattr(config, "_loaded", True)  # do not read the real .env
         with pytest.raises(LookupError, match="GEMINI_API_KEY is not set"):
             config.required(config.API_KEY)
 

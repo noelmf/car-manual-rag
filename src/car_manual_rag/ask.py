@@ -15,6 +15,7 @@ they are to be carried over intact.
 Every claim carries the page printed on the paper, not the page of the PDF, so
 the reader can find it in their own copy.
 """
+
 import argparse
 import sys
 import time
@@ -40,18 +41,19 @@ Rules:
 - Answer in the language of the question, briefly and directly.
 """
 
+
 def prompt(question, hits):
     """The fragments and the question, as the model sees them."""
     fragments = "\n\n".join(
-        f"--- Fragment {i} ({cite(hit)}) ---\n{hit['text']}"
-        for i, hit in enumerate(hits, 1))
+        f"--- Fragment {i} ({cite(hit)}) ---\n{hit['text']}" for i, hit in enumerate(hits, 1)
+    )
     return f"{fragments}\n\n--- Question ---\n{question}"
 
 
 def ask(manual_id, question, k=TOP_K):
     """Search the manual and answer from what comes back."""
     model = required(MODEL)
-    hits = search(manual_id, question, k)    # never builds; see index.load
+    hits = search(manual_id, question, k)  # never builds; see index.load
     payload = {
         "contents": [{"role": "user", "parts": [{"text": prompt(question, hits)}]}],
         "systemInstruction": {"parts": [{"text": SYSTEM}]},
@@ -66,14 +68,19 @@ def ask(manual_id, question, k=TOP_K):
         # A blocked or empty reply is not an answer; say why instead of ''.
         raise RuntimeError(f"no answer from {model}: {reply.get('promptFeedback', reply)}")
     parts = candidates[0].get("content", {}).get("parts") or []
-    return {"answer": "".join(p.get("text", "") for p in parts).strip(),
-            "hits": hits, "model": model, "usage": reply.get("usageMetadata", {})}
+    return {
+        "answer": "".join(p.get("text", "") for p in parts).strip(),
+        "hits": hits,
+        "model": model,
+        "usage": reply.get("usageMetadata", {}),
+    }
 
 
 def main():
     """Ask one manual a question; 0 = it answered."""
-    p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     p.add_argument("manual", help="manual id, from crag-catalog --resolve")
     p.add_argument("question")
     p.add_argument("-k", type=int, default=TOP_K, help="fragments to retrieve")
@@ -87,9 +94,11 @@ def main():
         return 1
 
     print(result["answer"])
-    print(f"\n-- {result['model']}, {len(result['hits'])} fragmentos, "
-          f"{result['usage'].get('totalTokenCount', '?')} tokens, "
-          f"{time.time() - started:.1f}s --")
+    print(
+        f"\n-- {result['model']}, {len(result['hits'])} fragmentos, "
+        f"{result['usage'].get('totalTokenCount', '?')} tokens, "
+        f"{time.time() - started:.1f}s --"
+    )
     for hit in result["hits"]:
         print(f"   [{hit['score']:.3f}] {cite(hit)}")
     return 0

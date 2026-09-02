@@ -1,4 +1,5 @@
 """Batching and pacing exist because of the provider's limits, not ours."""
+
 import pytest
 
 from car_manual_rag import embed

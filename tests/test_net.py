@@ -1,4 +1,5 @@
 """Retries only run when something is already wrong, so nobody tests them by hand."""
+
 import urllib.error
 
 import pytest
@@ -90,8 +91,10 @@ class TestGeminiRetryDelay:
         # Gemini puts it in the body, not in Retry-After; missing it meant
         # backing off 2s when the server had asked for 59.
         error = http_error(429)
-        error.body = (b'{"error":{"details":[{"@type":"type.googleapis.com/'
-                      b'google.rpc.RetryInfo","retryDelay":"59s"}]}}')
+        error.body = (
+            b'{"error":{"details":[{"@type":"type.googleapis.com/'
+            b'google.rpc.RetryInfo","retryDelay":"59s"}]}}'
+        )
         assert gemini.asked_wait(error) == 60.0
 
     def test_a_body_without_retry_info_gives_nothing(self):

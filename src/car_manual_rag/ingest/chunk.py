@@ -23,6 +23,7 @@ The head and foot are found by frequency, not by position: older manuals put
 the page number in the footer and newer ones in the header, so any fixed rule
 breaks on half the corpus.
 """
+
 import argparse
 import collections
 import json
@@ -35,31 +36,33 @@ from pathlib import Path
 
 from car_manual_rag.config import CHUNK_DIR, TEXT_DIR
 
-TARGET = 1200            # chars per chunk (~300 tokens), a step of a procedure
-OVERLAP = 150            # chars repeated from the previous chunk
-EDGE_LINES = 2           # lines at each end of a page that may be head or foot
-MIN_REPEATS = 5          # times a line must repeat there to count as chrome
-NAV_RATIO = 0.3          # share of dotted-leader lines that marks a nav page
+TARGET = 1200  # chars per chunk (~300 tokens), a step of a procedure
+OVERLAP = 150  # chars repeated from the previous chunk
+EDGE_LINES = 2  # lines at each end of a page that may be head or foot
+MIN_REPEATS = 5  # times a line must repeat there to count as chrome
+NAV_RATIO = 0.3  # share of dotted-leader lines that marks a nav page
 
-DOTTED = re.compile(r"\.\s*\.\s*\.\s*\.")           # table-of-contents leaders
-NON_TEXT = re.compile(r"[\ue000-\uf8ff\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")  # icon-font glyphs and control chars
-TITLE = re.compile(r"\w")                           # a section title has letters; a glyph does not
+DOTTED = re.compile(r"\.\s*\.\s*\.\s*\.")  # table-of-contents leaders
+# Icon-font glyphs and control characters: neither is readable text.
+NON_TEXT = re.compile(r"[\ue000-\uf8ff\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
+TITLE = re.compile(r"\w")  # a section title has letters; a glyph does not
 PAGE_NUMBER = re.compile(r"\d{1,4}")
 HYPHEN_WRAP = re.compile(r"(\w)-\n(\w)")
-BULLET = re.compile(r"^\s*[●▪•–-]\s*")
+BULLET = re.compile(r"^\s*[●▪•–-]\s*")  # noqa: RUF001 - the en dash is a real bullet here
 FIGURE = re.compile(r"^Fig\.\s*\d")
 
 
 def lines_of(text):
     """The page's non-empty lines, stripped of anything unreadable."""
-    return [l.strip() for l in NON_TEXT.sub(" ", text).split("\n") if l.strip()]
+    stripped = (line.strip() for line in NON_TEXT.sub(" ", text).split("\n"))
+    return [line for line in stripped if line]
 
 
 def is_nav(lines):
     """True for a table of contents or alphabetical index page."""
     if not lines:
         return False
-    dotted = sum(1 for l in lines if DOTTED.search(l))
+    dotted = sum(1 for line in lines if DOTTED.search(line))
     return dotted / len(lines) >= NAV_RATIO
 
 
@@ -73,7 +76,7 @@ def find_chrome(pages):
     for lines in pages:
         edge = lines[:EDGE_LINES] + lines[-EDGE_LINES:]
         counts.update(set(edge))
-    return {l for l, n in counts.items() if n >= MIN_REPEATS}
+    return {line for line, n in counts.items() if n >= MIN_REPEATS}
 
 
 def strip_chrome(lines, chrome):
@@ -106,16 +109,22 @@ def reflow(lines):
     which is harmless -- the chunker regroups them -- while the opposite,
     welding two topics together, is not.
     """
+
     # Rejoin a hyphenated word, but keep the hyphen of a compound like
     # 'Start-\nStop', where the second half is capitalised.
-    text = HYPHEN_WRAP.sub(lambda m: m.group(1) + ("-" if m.group(2).isupper() else "") + m.group(2),
-                           "\n".join(lines))
+    def rejoin(match):
+        first, second = match.group(1), match.group(2)
+        return first + ("-" if second.isupper() else "") + second
+
+    text = HYPHEN_WRAP.sub(rejoin, "\n".join(lines))
 
     paragraphs = []
     current = []
     previous = ""
     for line in text.split("\n"):
-        starts_new = BULLET.match(line) or FIGURE.match(line) or previous.endswith((".", ":", "!", "?"))
+        starts_new = (
+            BULLET.match(line) or FIGURE.match(line) or previous.endswith((".", ":", "!", "?"))
+        )
         if current and starts_new:
             paragraphs.append(" ".join(current))
             current = []
@@ -134,16 +143,17 @@ def units_of(records):
     units = []
     section = None
     dropped = 0
-    for record, lines in zip(records, pages):
+    for record, lines in zip(records, pages, strict=True):
         if is_nav(lines):
             dropped += 1
             continue
         body, head, printed = strip_chrome(lines, chrome)
-        section = head or section    # carry the chapter across its pages
+        section = head or section  # carry the chapter across its pages
         for paragraph in reflow(body):
             for piece in split_long(paragraph, TARGET):
-                units.append({"text": piece, "page": record["page"],
-                              "printed": printed, "section": section})
+                units.append(
+                    {"text": piece, "page": record["page"], "printed": printed, "section": section}
+                )
     return units, dropped
 
 
@@ -210,22 +220,35 @@ def chunk(path, out_dir, target, overlap):
                 text = "\n".join(u["text"] for u in group_units)
                 pages = sorted({u["page"] for u in group_units})
                 printed = [p for p in dict.fromkeys(u["printed"] for u in group_units) if p]
-                fh.write(json.dumps({"chunk_id": f"{manual_id}:{i:05d}",
-                                     "manual_id": manual_id,
-                                     "section": group_units[0]["section"],
-                                     "pages": pages,
-                                     "printed": printed,
-                                     "text": text}, ensure_ascii=False) + "\n")
+                fh.write(
+                    json.dumps(
+                        {
+                            "chunk_id": f"{manual_id}:{i:05d}",
+                            "manual_id": manual_id,
+                            "section": group_units[0]["section"],
+                            "pages": pages,
+                            "printed": printed,
+                            "text": text,
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
                 sizes.append(len(text))
     except Exception as e:
         tmp.unlink(missing_ok=True)
         return {"name": Path(path).name, "error": str(e)}
 
     tmp.rename(out_path)
-    return {"name": out_path.name, "pages": len(records), "nav": nav,
-            "chunks": len(sizes), "chars": sum(sizes),
-            "median": statistics.median(sizes) if sizes else 0,
-            "unsectioned": sum(1 for u in units if u["section"] is None)}
+    return {
+        "name": out_path.name,
+        "pages": len(records),
+        "nav": nav,
+        "chunks": len(sizes),
+        "chars": sum(sizes),
+        "median": statistics.median(sizes) if sizes else 0,
+        "unsectioned": sum(1 for u in units if u["section"] is None),
+    }
 
 
 def report(stats):
@@ -236,8 +259,10 @@ def report(stats):
     chars = sum(s["chars"] for s in ok)
     nav = sum(s["nav"] for s in ok)
 
-    print(f"\n{len(ok)} manuals, {chunks:,} chunks, {chars / 1e6:.1f}M chars "
-          f"({chars / max(chunks, 1):.0f} chars/chunk), {nav} nav pages dropped")
+    print(
+        f"\n{len(ok)} manuals, {chunks:,} chunks, {chars / 1e6:.1f}M chars "
+        f"({chars / max(chunks, 1):.0f} chars/chunk), {nav} nav pages dropped"
+    )
 
     # A manual that chunked badly shows up as far too few chunks per page, or
     # as chunks with no section, meaning the running head was never found.
@@ -245,10 +270,12 @@ def report(stats):
     sparse = [s for s in ok if s["pages"] and s["chunks"] / s["pages"] < 1]
     headless = [s for s in ok if s["chunks"] and s["unsectioned"] > 0.1 * s["chunks"]]
 
-    for label, group_stats in (("failed", failed),
-                               ("no chunks at all", empty),
-                               ("under 1 chunk per page", sparse),
-                               ("over 10% chunks with no section", headless)):
+    for label, group_stats in (
+        ("failed", failed),
+        ("no chunks at all", empty),
+        ("under 1 chunk per page", sparse),
+        ("over 10% chunks with no section", headless),
+    ):
         print(f"  {label}: {len(group_stats)}")
         for s in group_stats[:10]:
             print(f"      {s['name']}{' - ' + s['error'] if 'error' in s else ''}")
@@ -260,8 +287,9 @@ def report(stats):
 
 def main():
     """Run the chunking; return a shell exit code (0 = nothing suspicious)."""
-    p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     p.add_argument("--source", type=Path, default=TEXT_DIR, help="directory of page JSONL")
     p.add_argument("--dest", type=Path, default=CHUNK_DIR, help="output directory")
     p.add_argument("--target", type=int, default=TARGET, help="chars per chunk")
@@ -277,29 +305,32 @@ def main():
         print(f"No extracted text in {args.source} -- run crag-extract first")
         return 1
 
-    pending = sources if args.force else [
-        f for f in sources if not (args.dest / f.name).exists()
-    ]
+    pending = sources if args.force else [f for f in sources if not (args.dest / f.name).exists()]
     skipped = len(sources) - len(pending)
     if args.limit:
         pending = pending[: args.limit]
 
-    print(f"{len(sources)} manuals in {args.source}, {skipped} already chunked, "
-          f"{len(pending)} to process -> {args.dest}")
+    print(
+        f"{len(sources)} manuals in {args.source}, {skipped} already chunked, "
+        f"{len(pending)} to process -> {args.dest}"
+    )
 
     stats = []
     started = time.time()
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
-        futures = [pool.submit(chunk, str(f), str(args.dest), args.target, args.overlap)
-                   for f in pending]
+        futures = [
+            pool.submit(chunk, str(f), str(args.dest), args.target, args.overlap) for f in pending
+        ]
         for i, future in enumerate(futures, 1):
             s = future.result()
             stats.append(s)
             if "error" in s:
                 print(f"[{i}/{len(pending)}] {s['name']}  FAILED: {s['error']}")
             else:
-                print(f"[{i}/{len(pending)}] {s['name']}  {s['chunks']} chunks, "
-                      f"median {s['median']:.0f} chars")
+                print(
+                    f"[{i}/{len(pending)}] {s['name']}  {s['chunks']} chunks, "
+                    f"median {s['median']:.0f} chars"
+                )
 
     elapsed = time.time() - started
     print(f"\nChunked {len(stats)} manuals in {elapsed / 60:.1f} min")

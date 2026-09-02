@@ -6,7 +6,7 @@ requires-python = ">=3.10"
 dependencies = ["pymupdf>=1.24", "numpy>=1.26"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "ruff>=0.16"]
 
 [project.scripts]
 crag-download = "car_manual_rag.ingest.download:main"
@@ -25,3 +25,14 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Each ingest stage processes hundreds of files and must not let one bad PDF
+# kill the run: it catches everything, records the error and carries on.
+"src/car_manual_rag/ingest/*.py" = ["BLE001"]

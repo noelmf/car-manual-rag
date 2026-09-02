@@ -1,4 +1,5 @@
 """Project paths and the .env file, so every stage agrees on where things are."""
+
 import os
 from pathlib import Path
 
@@ -21,8 +22,7 @@ def find_root():
         if (path / CATALOG_NAME).is_file():
             return path
     raise FileNotFoundError(
-        f"{CATALOG_NAME} not found. Run from the project directory or set "
-        "CAR_MANUAL_RAG_ROOT."
+        f"{CATALOG_NAME} not found. Run from the project directory or set CAR_MANUAL_RAG_ROOT."
     )
 
 
@@ -42,9 +42,11 @@ MODEL = "GEMINI_MODEL"
 # Every setting, with where to get it. None has a default: an index is only
 # meaningful next to the model that built it, so guessing is the one thing
 # this must not do.
-SETTINGS = {API_KEY: "get one at aistudio.google.com/apikey",
-            EMBEDDING: "e.g. gemini-embedding-001",
-            MODEL: "e.g. gemini-3.6-flash"}
+SETTINGS = {
+    API_KEY: "get one at aistudio.google.com/apikey",
+    EMBEDDING: "e.g. gemini-embedding-001",
+    MODEL: "e.g. gemini-3.6-flash",
+}
 
 _loaded = False
 

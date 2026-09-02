@@ -1,4 +1,5 @@
 """An index that does not match its chunks cites the wrong page in silence."""
+
 import json
 
 import numpy as np
@@ -19,14 +20,30 @@ def indexed(tmp_path, monkeypatch):
     chunk_dir, index_dir = tmp_path / "chunks", tmp_path / "index"
     chunk_dir.mkdir()
     records = [
-        {"chunk_id": "M:00000", "section": "Uno", "pages": [1], "printed": ["9"], "text": "primero"},
-        {"chunk_id": "M:00001", "section": "Dos", "pages": [2, 3], "printed": ["10", "11"], "text": "segundo"},
+        {
+            "chunk_id": "M:00000",
+            "section": "Uno",
+            "pages": [1],
+            "printed": ["9"],
+            "text": "primero",
+        },
+        {
+            "chunk_id": "M:00001",
+            "section": "Dos",
+            "pages": [2, 3],
+            "printed": ["10", "11"],
+            "text": "segundo",
+        },
     ]
     (chunk_dir / "M.jsonl").write_text(
-        "\n".join(json.dumps(r) for r in records) + "\n", encoding="utf-8")
+        "\n".join(json.dumps(r) for r in records) + "\n", encoding="utf-8"
+    )
 
-    monkeypatch.setattr(index, "embed",
-                        lambda texts, kind, note=None: [[float(i + 1), 0.0] for i in range(len(texts))])
+    monkeypatch.setattr(
+        index,
+        "embed",
+        lambda texts, kind, note=None: [[float(i + 1), 0.0] for i in range(len(texts))],
+    )
     index.build("M", index_dir=index_dir, chunk_dir=chunk_dir)
     return chunk_dir, index_dir, records
 
@@ -41,14 +58,15 @@ class TestDigest:
 
     def test_moving_text_between_chunks_changes_it(self):
         # Without the separator, ['ab','c'] and ['a','bc'] would hash alike.
-        assert index.digest_of([{"text": "ab"}, {"text": "c"}]) != \
-               index.digest_of([{"text": "a"}, {"text": "bc"}])
+        assert index.digest_of([{"text": "ab"}, {"text": "c"}]) != index.digest_of(
+            [{"text": "a"}, {"text": "bc"}]
+        )
 
 
 class TestLoad:
     def test_a_matching_index_is_reused(self, indexed):
         chunk_dir, index_dir, records = indexed
-        vectors, chunks = index.load("M", index_dir=index_dir, chunk_dir=chunk_dir)
+        vectors, _ = index.load("M", index_dir=index_dir, chunk_dir=chunk_dir)
         assert len(vectors) == len(records)
 
     def test_a_missing_index_names_the_command_that_creates_it(self, tmp_path, indexed):
@@ -62,7 +80,8 @@ class TestLoad:
         chunk_dir, index_dir, records = indexed
         records[0]["text"] += " y algo mas"
         (chunk_dir / "M.jsonl").write_text(
-            "\n".join(json.dumps(r) for r in records) + "\n", encoding="utf-8")
+            "\n".join(json.dumps(r) for r in records) + "\n", encoding="utf-8"
+        )
         with pytest.raises(LookupError, match="different chunks"):
             index.load("M", index_dir=index_dir, chunk_dir=chunk_dir)
 
@@ -96,12 +115,15 @@ class TestVectors:
 
 class TestCite:
     def test_uses_the_printed_page_the_reader_can_see(self):
-        assert index.cite({"section": "Frenos", "printed": ["10", "11"], "pages": [2, 3]}) == \
-               "Frenos, pag. 10-11"
+        assert (
+            index.cite({"section": "Frenos", "printed": ["10", "11"], "pages": [2, 3]})
+            == "Frenos, pag. 10-11"
+        )
 
     def test_falls_back_to_the_pdf_page_when_none_was_printed(self):
         assert "2-3" in index.cite({"section": "Frenos", "printed": [], "pages": [2, 3]})
 
     def test_a_chunk_with_no_section_still_cites(self):
-        assert index.cite({"section": None, "printed": ["10"], "pages": [2]}) == \
-               "sin seccion, pag. 10"
+        assert (
+            index.cite({"section": None, "printed": ["10"], "pages": [2]}) == "sin seccion, pag. 10"
+        )

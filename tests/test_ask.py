@@ -1,4 +1,5 @@
 """The prompt and the reply parsing are the whole of the generation side."""
+
 import pytest
 
 from car_manual_rag import ask
@@ -6,13 +7,24 @@ from car_manual_rag import ask
 
 @pytest.fixture(autouse=True)
 def settings(monkeypatch):
-    for name, value in [("GEMINI_API_KEY", "clave"), ("GEMINI_EMBEDDING", "emb"),
-                        ("GEMINI_MODEL", "modelo")]:
+    for name, value in [
+        ("GEMINI_API_KEY", "clave"),
+        ("GEMINI_EMBEDDING", "emb"),
+        ("GEMINI_MODEL", "modelo"),
+    ]:
         monkeypatch.setenv(name, value)
 
 
-HITS = [{"section": "Frenos", "printed": ["10"], "pages": [2], "text": "El liquido de frenos.",
-         "chunk_id": "M:0", "score": 0.8}]
+HITS = [
+    {
+        "section": "Frenos",
+        "printed": ["10"],
+        "pages": [2],
+        "text": "El liquido de frenos.",
+        "chunk_id": "M:0",
+        "score": 0.8,
+    }
+]
 
 
 class TestPrompt:
@@ -30,6 +42,7 @@ class TestPrompt:
     def test_the_system_prompt_names_the_citation_format_cite_produces(self):
         # ask.SYSTEM and index.cite hold two halves of one contract.
         from car_manual_rag.index import cite
+
         assert "(pag. N)" in ask.SYSTEM
         assert cite(HITS[0]).startswith("Frenos, pag.")
 
@@ -41,11 +54,15 @@ class TestReply:
         return ask.ask("M", "¿cuando?")
 
     def test_reads_the_text_out_of_the_candidate(self, monkeypatch):
-        out = self.answer(monkeypatch, {"candidates": [{"content": {"parts": [{"text": "Cada 2 anos."}]}}]})
+        out = self.answer(
+            monkeypatch, {"candidates": [{"content": {"parts": [{"text": "Cada 2 anos."}]}}]}
+        )
         assert out["answer"] == "Cada 2 anos."
 
     def test_joins_several_parts(self, monkeypatch):
-        out = self.answer(monkeypatch, {"candidates": [{"content": {"parts": [{"text": "a"}, {"text": "b"}]}}]})
+        out = self.answer(
+            monkeypatch, {"candidates": [{"content": {"parts": [{"text": "a"}, {"text": "b"}]}}]}
+        )
         assert out["answer"] == "ab"
 
     def test_a_blocked_reply_says_why_instead_of_returning_nothing(self, monkeypatch):

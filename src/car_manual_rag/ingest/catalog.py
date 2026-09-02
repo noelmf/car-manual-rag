@@ -13,6 +13,7 @@ Two shapes of the data drive the code here:
   * each (brand, model, year, edition) must land on one manual and no more.
     Nothing in manuals.json enforces that, so validate() checks it.
 """
+
 import argparse
 import itertools
 import json
@@ -21,7 +22,7 @@ import sys
 
 from car_manual_rag.config import CATALOG, CHUNK_DIR
 
-EDITION = re.compile(r"(\d{2})\.(\d{2})")    # 'MM.YY', the date SEAT prints
+EDITION = re.compile(r"(\d{2})\.(\d{2})")  # 'MM.YY', the date SEAT prints
 
 
 def slug(text):
@@ -59,9 +60,11 @@ def paths(manuals):
 
 def newest_first(editions):
     """Sort 'MM.YY' editions by date, not as text: 06.22 is older than 11.22."""
+
     def when(edition):
         match = EDITION.fullmatch(edition)
         return (int(match.group(2)), int(match.group(1))) if match else (0, 0)
+
     return sorted(editions, key=when, reverse=True)
 
 
@@ -74,10 +77,16 @@ def tree(manuals):
     out = {}
     for (brand, model, year, edition), ids in paths(manuals).items():
         out.setdefault(brand, {}).setdefault(model, {}).setdefault(year, {})[edition] = ids[0]
-    return {b: {m: {y: {e: years[y][e] for e in newest_first(years[y])}
-                    for y in sorted(years, reverse=True)}
-                for m, years in sorted(models.items())}
-            for b, models in sorted(out.items())}
+    return {
+        b: {
+            m: {
+                y: {e: years[y][e] for e in newest_first(years[y])}
+                for y in sorted(years, reverse=True)
+            }
+            for m, years in sorted(models.items())
+        }
+        for b, models in sorted(out.items())
+    }
 
 
 def options(manuals, brand=None, model=None, year=None):
@@ -114,7 +123,9 @@ def validate(manuals, chunk_dir=CHUNK_DIR):
 
     for combo, matches in paths(manuals).items():
         if len(matches) > 1:
-            problems.append(f"{' '.join(combo)} matches {len(matches)} manuals: {', '.join(matches)}")
+            problems.append(
+                f"{' '.join(combo)} matches {len(matches)} manuals: {', '.join(matches)}"
+            )
 
     chunked = {p.stem for p in chunk_dir.glob("*.jsonl")} if chunk_dir.is_dir() else set()
     for missing in sorted(set(ids) - chunked):
@@ -127,13 +138,22 @@ def validate(manuals, chunk_dir=CHUNK_DIR):
 
 def main():
     """Inspect and validate the catalogue; 0 = the picker is sound."""
-    p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     p.add_argument("--tree", action="store_true", help="print the whole picker")
-    p.add_argument("--options", nargs="*", metavar="CHOICE",
-                   help="what to offer next, given 0-3 choices (brand, model, year)")
-    p.add_argument("--resolve", nargs=4, metavar=("BRAND", "MODEL", "YEAR", "EDITION"),
-                   help="print the manual id for a complete selection")
+    p.add_argument(
+        "--options",
+        nargs="*",
+        metavar="CHOICE",
+        help="what to offer next, given 0-3 choices (brand, model, year)",
+    )
+    p.add_argument(
+        "--resolve",
+        nargs=4,
+        metavar=("BRAND", "MODEL", "YEAR", "EDITION"),
+        help="print the manual id for a complete selection",
+    )
     args = p.parse_args()
 
     manuals = load()
@@ -165,9 +185,11 @@ def main():
                     print(f"    {year}: " + ", ".join(f"{e} -> {i}" for e, i in editions.items()))
 
     combos = paths(manuals)
-    print(f"\n{len(manuals)} manuals, {len({m['brand'] for m in manuals})} brands, "
-          f"{len({mo for m in manuals for mo in m['model']})} models, "
-          f"{len(combos)} paths through the picker")
+    print(
+        f"\n{len(manuals)} manuals, {len({m['brand'] for m in manuals})} brands, "
+        f"{len({mo for m in manuals for mo in m['model']})} models, "
+        f"{len(combos)} paths through the picker"
+    )
 
     problems = validate(manuals)
     print(f"  problems: {len(problems)}")

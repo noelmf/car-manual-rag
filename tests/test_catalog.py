@@ -1,5 +1,4 @@
 """The catalogue is the picker: its ordering and its collisions are the risk."""
-import json
 
 import pytest
 
@@ -8,8 +7,12 @@ from car_manual_rag.ingest import catalog
 ENTRIES = [
     {"brand": "SEAT", "model": ["Ibiza"], "year": ["2023"], "edition": ["11.22"]},
     {"brand": "SEAT", "model": ["Ibiza"], "year": ["2023"], "edition": ["06.22"]},
-    {"brand": "SEAT", "model": ["Leon", "Leon Sportstourer"], "year": ["2026"],
-     "edition": ["11.25"]},
+    {
+        "brand": "SEAT",
+        "model": ["Leon", "Leon Sportstourer"],
+        "year": ["2026"],
+        "edition": ["11.25"],
+    },
 ]
 
 
@@ -46,8 +49,9 @@ class TestOrdering:
 
 class TestPicker:
     def test_a_multi_model_manual_appears_under_every_model(self, manuals):
-        assert catalog.resolve(manuals, "SEAT", "Leon", "2026", "11.25") == \
-               catalog.resolve(manuals, "SEAT", "Leon Sportstourer", "2026", "11.25")
+        assert catalog.resolve(manuals, "SEAT", "Leon", "2026", "11.25") == catalog.resolve(
+            manuals, "SEAT", "Leon Sportstourer", "2026", "11.25"
+        )
 
     def test_more_paths_than_manuals(self, manuals):
         assert len(catalog.paths(manuals)) == 4 and len(manuals) == 3
@@ -85,5 +89,4 @@ class TestValidate:
 
     def test_two_manuals_on_one_filter_path_collide(self, manuals, tmp_path):
         clash = dict(ENTRIES[0], edition=["11.22"], manual_id="SEAT_Ibiza_otro")
-        assert any("matches 2 manuals" in p
-                   for p in catalog.validate(manuals + [clash], tmp_path))
+        assert any("matches 2 manuals" in p for p in catalog.validate([*manuals, clash], tmp_path))

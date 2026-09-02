@@ -23,6 +23,7 @@ The freshness this guarantees stops at the chunks: it detects an index built
 from different chunks, not chunks built from stale extracted text. The earlier
 stages skip on a file existing, so re-running them needs --force.
 """
+
 import argparse
 import hashlib
 import json
@@ -87,11 +88,10 @@ def build(manual_id, chunks=None, index_dir=INDEX_DIR, chunk_dir=CHUNK_DIR, note
     path = index_path(manual_id, index_dir)
     tmp = path.with_suffix(".part.npz")
     try:
-        np.savez(tmp, vectors=vectors, digest=np.array(digest_of(chunks)),
-                 model=np.array(model))
+        np.savez(tmp, vectors=vectors, digest=np.array(digest_of(chunks)), model=np.array(model))
         tmp.replace(path)
     except BaseException:
-        tmp.unlink(missing_ok=True)    # never leave a half-written index
+        tmp.unlink(missing_ok=True)  # never leave a half-written index
         raise
     return vectors, model
 
@@ -119,8 +119,9 @@ def load(manual_id, index_dir=INDEX_DIR, chunk_dir=CHUNK_DIR):
 
     model = required(EMBEDDING)
     if str(cached["model"]) != model:
-        raise LookupError(f"{manual_id} was indexed with {cached['model']}, "
-                          f"not {model} -- {rebuild}")
+        raise LookupError(
+            f"{manual_id} was indexed with {cached['model']}, not {model} -- {rebuild}"
+        )
     if str(cached["digest"]) != digest_of(chunks):
         raise LookupError(f"{manual_id} was indexed from different chunks -- {rebuild}")
 
@@ -147,8 +148,9 @@ def cite(chunk):
 
 def main():
     """Build an index or try a search; 0 = nothing failed."""
-    p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     p.add_argument("manual", help="manual id, from crag-catalog --resolve")
     p.add_argument("--search", metavar="QUESTION", help="ask the manual a question")
     p.add_argument("-k", type=int, default=TOP_K, help="chunks to return")
@@ -170,8 +172,10 @@ def main():
             return 0
         started = time.time()
         vectors, model = build(args.manual, note=print)
-        print(f"{args.manual}: {len(vectors)} chunks, {vectors.shape[1]} dims, "
-              f"{model}, {time.time() - started:.1f}s")
+        print(
+            f"{args.manual}: {len(vectors)} chunks, {vectors.shape[1]} dims, "
+            f"{model}, {time.time() - started:.1f}s"
+        )
     except (LookupError, RuntimeError) as e:
         print(e)
         return 1
