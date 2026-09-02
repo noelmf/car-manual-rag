@@ -1,0 +1,28 @@
+#!/bin/sh
+# Reject a commit whose Python does not satisfy ruff.
+#
+# Enable it once per checkout with:
+#     git config core.hooksPath hooks
+#
+# It lives in the repo, not in .git/hooks, so everyone gets the same rules.
+# Skip it for one commit with `git commit --no-verify`.
+
+files=$(git diff --cached --name-only --diff-filter=ACM -- '*.py')
+[ -z "$files" ] && exit 0
+
+ruff=$(command -v ruff || echo ./.venv/bin/ruff)
+if [ ! -x "$ruff" ]; then
+    echo "pre-commit: ruff not found -- pip install -e '.[dev]'"
+    exit 1
+fi
+
+# shellcheck disable=SC2086
+"$ruff" format --check $files || {
+    echo "\npre-commit: formatting. Fix with:  ruff format $files"
+    exit 1
+}
+# shellcheck disable=SC2086
+"$ruff" check $files || {
+    echo "\npre-commit: lint errors. Some are fixable with:  ruff check --fix $files"
+    exit 1
+}
