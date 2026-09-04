@@ -76,7 +76,7 @@ def ask(manual_id, question, k=TOP_K):
     }
 
 
-def main():
+def main():  # pragma: no cover - argparse and printing
     """Ask one manual a question; 0 = it answered."""
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter

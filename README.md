@@ -4,7 +4,7 @@ Sistema RAG (Retrieval Augmented Generation) sobre manuales de usuario de
 coches. 
 
 > [!NOTE]
-> Incluye 274 manuales de la marca SEAT, cubriendo 19 modelos fabricados entre 2006 y 2026.
+> Incluye 274 manuales de la marca SEAT, cubriendo 19 modelos fabricados entre 2006 y 2026. Cada modelo y año puede tener varias versiones.
 
 
 ## Instalación

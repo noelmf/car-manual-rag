@@ -54,7 +54,7 @@ def download(url, path):
         return len(data)
 
 
-def main():
+def main():  # pragma: no cover - argparse and printing
     """Run the download; return a shell exit code (0 = every PDF fetched)."""
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--limit", type=int, help="download only the first N manuals")

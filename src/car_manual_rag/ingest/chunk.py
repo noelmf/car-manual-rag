@@ -285,7 +285,7 @@ def report(stats):
     return bool(failed or empty or sparse or headless)
 
 
-def main():
+def main():  # pragma: no cover - argparse and printing
     """Run the chunking; return a shell exit code (0 = nothing suspicious)."""
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter

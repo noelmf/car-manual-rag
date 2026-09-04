@@ -136,7 +136,7 @@ def validate(manuals, chunk_dir=CHUNK_DIR):
     return problems
 
 
-def main():
+def main():  # pragma: no cover - argparse and printing
     """Inspect and validate the catalogue; 0 = the picker is sound."""
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter

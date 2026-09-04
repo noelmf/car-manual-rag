@@ -1,5 +1,7 @@
 """The chunker decides the quality of every answer, so it carries the most tests."""
 
+import json
+
 from car_manual_rag.ingest import chunk
 
 
@@ -108,3 +110,89 @@ class TestUnits:
     def test_the_printed_page_is_kept_not_the_pdf_page(self, pages):
         units, _ = chunk.units_of(pages * 2)
         assert {u["printed"] for u in units} == {"117", "118", "119"}
+
+
+def text_file(tmp_path, pages, manual_id="M"):
+    """A page-per-line JSONL like the one crag-extract writes."""
+    path = tmp_path / f"{manual_id}.jsonl"
+    path.write_text(
+        "\n".join(json.dumps(p, ensure_ascii=False) for p in pages) + "\n", encoding="utf-8"
+    )
+    return path
+
+
+class TestChunkFile:
+    def test_writes_chunks_with_their_page_and_section(self, tmp_path, pages):
+        out = tmp_path / "out"
+        out.mkdir()
+        stats = chunk.chunk(str(text_file(tmp_path, pages * 2)), str(out), 1200, 150)
+        written = [
+            json.loads(x) for x in (out / "M.jsonl").read_text(encoding="utf-8").splitlines()
+        ]
+        assert stats["chunks"] == len(written) > 0
+        assert all(c["section"] == "Climatizacion" for c in written)
+        assert all(c["manual_id"] == "M" for c in written)
+
+    def test_chunk_ids_are_sequential_within_the_manual(self, tmp_path, pages):
+        out = tmp_path / "out"
+        out.mkdir()
+        chunk.chunk(str(text_file(tmp_path, pages * 3)), str(out), 400, 0)
+        ids = [json.loads(x)["chunk_id"] for x in (out / "M.jsonl").read_text().splitlines()]
+        assert ids == [f"M:{i:05d}" for i in range(len(ids))]
+
+    def test_a_broken_source_is_reported_not_raised(self, tmp_path):
+        bad = tmp_path / "roto.jsonl"
+        bad.write_text("esto no es json\n", encoding="utf-8")
+        out = tmp_path / "out"
+        out.mkdir()
+        assert "error" in chunk.chunk(str(bad), str(out), 1200, 150)
+
+    def test_a_failure_leaves_no_partial_file(self, tmp_path):
+        bad = tmp_path / "roto.jsonl"
+        bad.write_text("esto no es json\n", encoding="utf-8")
+        out = tmp_path / "out"
+        out.mkdir()
+        chunk.chunk(str(bad), str(out), 1200, 150)
+        assert list(out.iterdir()) == []
+
+    def test_nav_pages_are_counted_as_dropped(self, tmp_path, pages):
+        from tests.conftest import NAV_PAGE
+
+        out = tmp_path / "out"
+        out.mkdir()
+        stats = chunk.chunk(str(text_file(tmp_path, pages * 2 + [NAV_PAGE])), str(out), 1200, 150)
+        assert stats["nav"] == 1
+
+
+def chunk_stat(name="M.jsonl", pages=100, chunks=300, chars=330_000, unsectioned=0):
+    return {
+        "name": name,
+        "pages": pages,
+        "nav": 0,
+        "chunks": chunks,
+        "chars": chars,
+        "median": 1100,
+        "unsectioned": unsectioned,
+    }
+
+
+class TestReport:
+    def test_a_healthy_run_raises_no_flag(self):
+        assert chunk.report([chunk_stat()]) is False
+
+    def test_a_failure_is_flagged(self):
+        assert chunk.report([{"name": "M.jsonl", "error": "roto"}]) is True
+
+    def test_a_manual_with_no_chunks_is_flagged(self):
+        assert chunk.report([chunk_stat(chunks=0)]) is True
+
+    def test_fewer_chunks_than_pages_is_flagged(self):
+        # Fewer than one chunk per page means the text mostly vanished.
+        assert chunk.report([chunk_stat(pages=100, chunks=99)]) is True
+
+    def test_too_many_chunks_without_a_section_is_flagged(self):
+        # The running-head detector failed on that manual's layout.
+        assert chunk.report([chunk_stat(chunks=300, unsectioned=31)]) is True
+
+    def test_an_empty_run_does_not_divide_by_zero(self):
+        assert chunk.report([]) is False

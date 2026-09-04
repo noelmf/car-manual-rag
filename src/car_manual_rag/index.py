@@ -146,7 +146,7 @@ def cite(chunk):
     return f"{chunk['section'] or 'sin seccion'}, pag. {'-'.join(pages)}"
 
 
-def main():
+def main():  # pragma: no cover - argparse and printing
     """Build an index or try a search; 0 = nothing failed."""
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter

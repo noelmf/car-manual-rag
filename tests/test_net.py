@@ -106,3 +106,43 @@ class TestGeminiRetryDelay:
         error = http_error(429)
         error.body = b"<html>502</html>"
         assert gemini.asked_wait(error) is None
+
+
+class TestGeminiCall:
+    @pytest.fixture(autouse=True)
+    def key(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_API_KEY", "clave-secreta")
+
+    def test_builds_the_url_from_the_model_and_the_verb(self, monkeypatch):
+        seen = {}
+
+        def fake_fetch(request, timeout, note=None, asked_wait=None):
+            seen["url"] = request.full_url
+            seen["headers"] = request.headers
+            return {}, b'{"ok": true}'
+
+        monkeypatch.setattr(gemini, "fetch", fake_fetch)
+        assert gemini.call("un-modelo", "generateContent", {"a": 1}) == {"ok": True}
+        assert seen["url"].endswith("/models/un-modelo:generateContent")
+
+    def test_sends_the_key_in_gemini_s_own_header(self, monkeypatch):
+        seen = {}
+
+        def fake_fetch(request, timeout, note=None, asked_wait=None):
+            seen.update(request.headers)
+            return {}, b"{}"
+
+        monkeypatch.setattr(gemini, "fetch", fake_fetch)
+        gemini.call("m", "v", {})
+        # urllib capitalises header names, so compare case-insensitively.
+        assert any(k.lower() == "x-goog-api-key" for k in seen)
+
+    def test_an_error_carries_the_reason_gemini_gave(self, monkeypatch):
+        def fake_fetch(request, timeout, note=None, asked_wait=None):
+            error = http_error(400)
+            error.body = b'{"error":{"message":"model not found"}}'
+            raise error
+
+        monkeypatch.setattr(gemini, "fetch", fake_fetch)
+        with pytest.raises(RuntimeError, match="model not found"):
+            gemini.call("m", "v", {})
