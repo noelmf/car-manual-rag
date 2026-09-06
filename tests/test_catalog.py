@@ -1,5 +1,7 @@
 """The catalogue is the picker: its ordering and its collisions are the risk."""
 
+import json
+
 import pytest
 
 from car_manual_rag.ingest import catalog
@@ -47,6 +49,15 @@ class TestOrdering:
         assert len(catalog.newest_first(["sin formato", "11.22"])) == 2
 
 
+class TestLoad:
+    def test_every_entry_comes_back_tagged_with_its_id(self, tmp_path):
+        path = tmp_path / "manuals.json"
+        path.write_text(json.dumps(ENTRIES), encoding="utf-8")
+        assert [m["manual_id"] for m in catalog.load(path)] == [
+            catalog.manual_id(e) for e in ENTRIES
+        ]
+
+
 class TestPicker:
     def test_a_multi_model_manual_appears_under_every_model(self, manuals):
         assert catalog.resolve(manuals, "SEAT", "Leon", "2026", "11.25") == catalog.resolve(
@@ -90,3 +101,11 @@ class TestValidate:
     def test_two_manuals_on_one_filter_path_collide(self, manuals, tmp_path):
         clash = dict(ENTRIES[0], edition=["11.22"], manual_id="SEAT_Ibiza_otro")
         assert any("matches 2 manuals" in p for p in catalog.validate([*manuals, clash], tmp_path))
+
+    def test_a_duplicate_manual_id_is_reported(self, manuals, tmp_path):
+        # Two entries yielding one id means one manual's chunks overwrite the
+        # other's. Nothing in manuals.json prevents it, which is why validate
+        # looks for it.
+        twin = dict(ENTRIES[0], manual_id=manuals[0]["manual_id"])
+        problems = catalog.validate([*manuals, twin], tmp_path)
+        assert any("duplicate manual id" in p for p in problems)

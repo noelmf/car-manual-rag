@@ -63,6 +63,44 @@ class TestDigest:
         )
 
 
+class TestBuild:
+    """A half-written index is a file that cites pages it never read."""
+
+    @pytest.fixture
+    def one_chunk(self, monkeypatch):
+        monkeypatch.setattr(index, "embed", lambda texts, kind, note=None: [[1.0, 0.0]])
+        return [{"text": "uno"}]
+
+    def test_a_write_that_fails_halfway_leaves_nothing_behind(
+        self, tmp_path, one_chunk, monkeypatch
+    ):
+        def half_written(path, **arrays):
+            path.write_bytes(b"a medias")
+            raise OSError("no queda espacio")
+
+        monkeypatch.setattr(index.np, "savez", half_written)
+        with pytest.raises(OSError):
+            index.build("M", chunks=one_chunk, index_dir=tmp_path)
+        assert list(tmp_path.iterdir()) == []
+
+    def test_even_an_interrupt_cleans_up(self, tmp_path, one_chunk, monkeypatch):
+        # 'except BaseException', not 'except Exception': a Ctrl-C partway
+        # through a forty-second embed must not leave a truncated index that
+        # the next run would happily load.
+        def interrupted(path, **arrays):
+            path.write_bytes(b"a medias")
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr(index.np, "savez", interrupted)
+        with pytest.raises(KeyboardInterrupt):
+            index.build("M", chunks=one_chunk, index_dir=tmp_path)
+        assert list(tmp_path.iterdir()) == []
+
+    def test_a_finished_build_leaves_only_the_index(self, tmp_path, one_chunk):
+        index.build("M", chunks=one_chunk, index_dir=tmp_path)
+        assert [p.name for p in tmp_path.iterdir()] == ["M.npz"]
+
+
 class TestLoad:
     def test_a_matching_index_is_reused(self, indexed):
         chunk_dir, index_dir, records = indexed
@@ -111,6 +149,44 @@ class TestVectors:
     def test_a_zero_vector_does_not_divide_by_zero(self, monkeypatch):
         monkeypatch.setattr(index, "embed", lambda texts, kind, note=None: [[0.0, 0.0]])
         assert np.isfinite(index.vectors_of(["x"], "passage")).all()
+
+
+class TestSearch:
+    """The ranking itself. load() is covered above; this is what it feeds."""
+
+    @pytest.fixture
+    def corpus(self, monkeypatch):
+        # Unit vectors at known angles to the query [1, 0], so the expected
+        # order is arithmetic rather than a guess: 1.0, 0.6, 0.0, -1.0.
+        vectors = np.array([[1.0, 0.0], [0.6, 0.8], [0.0, 1.0], [-1.0, 0.0]], dtype=np.float32)
+        chunks = [{"chunk_id": f"M:{i}", "text": t} for i, t in enumerate("abcd")]
+        monkeypatch.setattr(index, "load", lambda manual_id: (vectors, chunks))
+        monkeypatch.setattr(index, "embed", lambda texts, kind, note=None: [[1.0, 0.0]])
+        return chunks
+
+    def test_the_closest_chunk_comes_first_and_the_opposite_one_last(self, corpus):
+        assert [h["chunk_id"] for h in index.search("M", "pregunta")] == [
+            "M:0",
+            "M:1",
+            "M:2",
+            "M:3",
+        ]
+
+    def test_k_caps_how_many_come_back(self, corpus):
+        assert len(index.search("M", "pregunta", k=2)) == 2
+
+    def test_every_hit_carries_the_score_it_was_ranked_by(self, corpus):
+        hits = index.search("M", "pregunta", k=2)
+        assert [h["score"] for h in hits] == [pytest.approx(1.0), pytest.approx(0.6)]
+
+    def test_a_hit_keeps_the_chunk_it_came_from(self, corpus):
+        assert index.search("M", "pregunta", k=1)[0]["text"] == "a"
+
+    def test_the_stored_chunks_are_not_given_a_score(self, corpus):
+        # The hit is a copy: scoring the cached chunks in place would leak the
+        # previous question's scores into the next search.
+        index.search("M", "pregunta")
+        assert all("score" not in c for c in corpus)
 
 
 class TestCite:

@@ -71,7 +71,7 @@ Todos aceptan `--help`.
 ./.venv/bin/pytest --cov
 ```
 
-Mide cobertura de rama y falla por debajo del 90%. El umbral y el alcance
+Mide cobertura de rama y falla por debajo del 96%. El umbral y el alcance
 viven en `pyproject.toml`, así que la orden es la misma aquí que en CI.
 
 Los mismos `ruff` y `pytest` corren en cada push. Para que `ruff` rechace

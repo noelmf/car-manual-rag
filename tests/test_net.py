@@ -86,6 +86,57 @@ class TestFetch:
         assert hasattr(e.value, "body")
 
 
+class TestFetchWhenTheNetworkGoesAway:
+    """A 429 answers; a dropped connection does not, and takes a different path."""
+
+    def test_retries_a_refused_connection(self, monkeypatch, no_sleeping):
+        calls = responder(monkeypatch, [urllib.error.URLError("conexion rechazada"), b"ok"])
+        assert net.fetch("req", 10)[1] == b"ok"
+        assert len(calls) == 2
+
+    def test_retries_a_timeout(self, monkeypatch, no_sleeping):
+        responder(monkeypatch, [TimeoutError("se agoto el tiempo"), b"ok"])
+        assert net.fetch("req", 10)[1] == b"ok"
+
+    def test_gives_up_on_a_connection_that_never_comes_back(self, monkeypatch, no_sleeping):
+        calls = responder(monkeypatch, [urllib.error.URLError("caida")] * 4)
+        with pytest.raises(urllib.error.URLError):
+            net.fetch("req", 10, retries=4)
+        assert len(calls) == 4
+
+    def test_backs_off_by_doubling(self, monkeypatch, no_sleeping):
+        # Nobody sends a Retry-After with a dropped socket, so doubling is the
+        # only policy left.
+        responder(
+            monkeypatch,
+            [urllib.error.URLError("una"), urllib.error.URLError("otra"), b"ok"],
+        )
+        net.fetch("req", 10)
+        assert no_sleeping == [2.0, 4.0]
+
+
+class TestProgress:
+    """A silent minute-long wait is indistinguishable from a hang."""
+
+    def test_a_rate_limit_says_the_reason_and_the_wait(self, monkeypatch, no_sleeping):
+        lines = []
+        responder(monkeypatch, [http_error(429, {"Retry-After": "30"}), b"ok"])
+        net.fetch("req", 10, note=lines.append)
+        assert lines == ["    HTTP 429, retry 1 in 30s"]
+
+    def test_a_network_failure_names_itself(self, monkeypatch, no_sleeping):
+        lines = []
+        responder(monkeypatch, [urllib.error.URLError("conexion rechazada"), b"ok"])
+        net.fetch("req", 10, note=lines.append)
+        assert "conexion rechazada" in lines[0]
+
+    def test_nothing_is_printed_when_nothing_fails(self, monkeypatch):
+        lines = []
+        responder(monkeypatch, [b"ok"])
+        net.fetch("req", 10, note=lines.append)
+        assert lines == []
+
+
 class TestGeminiRetryDelay:
     def test_reads_the_wait_gemini_asks_for(self):
         # Gemini puts it in the body, not in Retry-After; missing it meant

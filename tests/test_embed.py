@@ -63,6 +63,37 @@ class TestPace:
         assert embed.RATE % embed.BATCH == 0
 
 
+class TestPaceReportsTheWait:
+    @pytest.fixture(autouse=True)
+    def clock(self, monkeypatch):
+        self.now, self.slept = 1000.0, []
+
+        def sleep(seconds):
+            self.slept.append(seconds)
+            self.now += seconds
+
+        monkeypatch.setattr(embed, "_sent", type(embed._sent)())
+        monkeypatch.setattr(embed.time, "sleep", sleep)
+        monkeypatch.setattr(embed.time, "monotonic", lambda: self.now)
+
+    def test_a_spent_budget_waits_for_the_window_to_slide(self):
+        # Half a second past the window, so the oldest entry has really left it.
+        embed.pace(embed.RATE)
+        embed.pace(1)
+        assert self.slept == [pytest.approx(embed.WINDOW + 0.5)]
+
+    def test_the_wait_is_announced_rather_than_silent(self):
+        lines = []
+        embed.pace(embed.RATE)
+        embed.pace(1, note=lines.append)
+        assert len(lines) == 1 and "rate limit" in lines[0]
+
+    def test_a_batch_inside_the_budget_says_nothing(self):
+        lines = []
+        embed.pace(embed.BATCH, note=lines.append)
+        assert lines == []
+
+
 class TestEmbed:
     @pytest.fixture(autouse=True)
     def settings(self, monkeypatch):

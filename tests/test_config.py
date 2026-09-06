@@ -19,6 +19,21 @@ def env_file(tmp_path, text):
     return path
 
 
+class TestFindRoot:
+    def test_the_environment_override_wins_over_any_search(self, tmp_path, monkeypatch):
+        # Set it and no manuals.json is looked for: this is how an installed
+        # package is pointed at a checkout somewhere else.
+        monkeypatch.setenv("CAR_MANUAL_RAG_ROOT", str(tmp_path))
+        assert config.find_root() == tmp_path.resolve()
+
+    def test_with_no_catalogue_anywhere_it_says_how_to_fix_it(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("CAR_MANUAL_RAG_ROOT", raising=False)
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(config, "__file__", str(tmp_path / "a" / "b" / "c.py"))
+        with pytest.raises(FileNotFoundError, match="CAR_MANUAL_RAG_ROOT"):
+            config.find_root()
+
+
 class TestLoadEnv:
     def test_reads_a_plain_assignment(self, tmp_path, monkeypatch):
         config.load_env(env_file(tmp_path, "GEMINI_API_KEY=abc123\n"))
