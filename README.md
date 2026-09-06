@@ -1,5 +1,8 @@
 # car-manual-rag
 
+[![checks](https://github.com/noelmf/car-manual-rag/actions/workflows/checks.yml/badge.svg)](https://github.com/noelmf/car-manual-rag/actions/workflows/checks.yml)
+[![codecov](https://codecov.io/gh/noelmf/car-manual-rag/branch/main/graph/badge.svg)](https://codecov.io/gh/noelmf/car-manual-rag)
+
 Sistema RAG (Retrieval Augmented Generation) sobre manuales de usuario de
 coches. 
 
@@ -60,6 +63,23 @@ crag-ask SEAT_Ibiza_11.25 "¿cada cuánto se cambia el aceite?"
 | `crag-ask` | Pregunta y responde citando la página |
 
 Todos aceptan `--help`.
+
+
+## Tests
+
+```bash
+./.venv/bin/pytest --cov
+```
+
+Mide cobertura de rama y falla por debajo del 90%. El umbral y el alcance
+viven en `pyproject.toml`, así que la orden es la misma aquí que en CI.
+
+Los mismos `ruff` y `pytest` corren en cada push. Para que `ruff` rechace
+también los commits locales, una vez por checkout:
+
+```bash
+git config core.hooksPath hooks
+```
 
 
 ## Decisiones técnicas

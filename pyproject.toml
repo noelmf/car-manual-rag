@@ -37,5 +37,16 @@ select = ["E", "W", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
 # kill the run: it catches everything, records the error and carries on.
 "src/car_manual_rag/ingest/*.py" = ["BLE001"]
 
+[tool.coverage.run]
+# Named here rather than passed as `--cov=car_manual_rag`, so a bare
+# `pytest --cov` measures the same thing locally and in CI.
+source = ["src/car_manual_rag"]
+# Statement coverage says a line ran; branch coverage says both sides of the
+# `if` ran. The checks that refuse a stale index are branches, not lines.
+branch = true
+
 [tool.coverage.report]
 exclude_also = ["if __name__ == .__main__.:"]
+# A floor, not a target: below this the test run itself fails. The margin
+# under the current figure leaves room to refactor without fighting CI.
+fail_under = 90
