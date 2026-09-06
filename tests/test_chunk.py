@@ -61,10 +61,8 @@ class TestChrome:
 
 
 class TestNavPages:
-    def test_a_contents_page_is_recognised(self):
-        from tests.conftest import NAV_PAGE
-
-        assert chunk.is_nav(chunk.lines_of(NAV_PAGE["text"]))
+    def test_a_contents_page_is_recognised(self, nav_page):
+        assert chunk.is_nav(chunk.lines_of(nav_page["text"]))
 
     def test_a_body_page_is_not(self, pages):
         assert not chunk.is_nav(chunk.lines_of(pages[0]["text"]))
@@ -100,10 +98,8 @@ class TestGrouping:
 
 
 class TestUnits:
-    def test_nav_pages_are_dropped_and_sections_carry_forward(self, pages):
-        from tests.conftest import NAV_PAGE
-
-        units, dropped = chunk.units_of(pages * 2 + [NAV_PAGE])
+    def test_nav_pages_are_dropped_and_sections_carry_forward(self, pages, nav_page):
+        units, dropped = chunk.units_of(pages * 2 + [nav_page])
         assert dropped == 1
         assert {u["section"] for u in units} == {"Climatizacion"}
 
@@ -155,12 +151,10 @@ class TestChunkFile:
         chunk.chunk(str(bad), str(out), 1200, 150)
         assert list(out.iterdir()) == []
 
-    def test_nav_pages_are_counted_as_dropped(self, tmp_path, pages):
-        from tests.conftest import NAV_PAGE
-
+    def test_nav_pages_are_counted_as_dropped(self, tmp_path, pages, nav_page):
         out = tmp_path / "out"
         out.mkdir()
-        stats = chunk.chunk(str(text_file(tmp_path, pages * 2 + [NAV_PAGE])), str(out), 1200, 150)
+        stats = chunk.chunk(str(text_file(tmp_path, pages * 2 + [nav_page])), str(out), 1200, 150)
         assert stats["nav"] == 1
 
 

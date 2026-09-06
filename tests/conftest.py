@@ -39,6 +39,11 @@ def pages():
 
 
 @pytest.fixture
+def nav_page():
+    return dict(NAV_PAGE)
+
+
+@pytest.fixture
 def chunk_file(tmp_path):
     """Write a chunks JSONL and return its directory and the records."""
 
