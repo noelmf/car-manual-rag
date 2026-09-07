@@ -1,3 +1,4 @@
+README.md
 pyproject.toml
 src/car_manual_rag/__init__.py
 src/car_manual_rag/ask.py
@@ -5,6 +6,7 @@ src/car_manual_rag/config.py
 src/car_manual_rag/embed.py
 src/car_manual_rag/gemini.py
 src/car_manual_rag/index.py
+src/car_manual_rag/net.py
 src/car_manual_rag.egg-info/PKG-INFO
 src/car_manual_rag.egg-info/SOURCES.txt
 src/car_manual_rag.egg-info/dependency_links.txt
@@ -15,4 +17,14 @@ src/car_manual_rag/ingest/__init__.py
 src/car_manual_rag/ingest/catalog.py
 src/car_manual_rag/ingest/chunk.py
 src/car_manual_rag/ingest/download.py
+src/car_manual_rag/ingest/figures.py
 src/car_manual_rag/ingest/text.py
+tests/test_ask.py
+tests/test_catalog.py
+tests/test_chunk.py
+tests/test_config.py
+tests/test_download.py
+tests/test_embed.py
+tests/test_index.py
+tests/test_net.py
+tests/test_text.py

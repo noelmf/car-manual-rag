@@ -32,6 +32,7 @@ DATA = ROOT / "data"
 PDF_DIR = DATA / "raw" / "pdf"
 TEXT_DIR = DATA / "interim" / "text"
 CHUNK_DIR = DATA / "interim" / "chunks"
+FIGURE_DIR = DATA / "interim" / "figures"
 INDEX_DIR = DATA / "processed" / "index"
 ENV_FILE = ROOT / ".env"
 

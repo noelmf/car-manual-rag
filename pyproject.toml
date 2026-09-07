@@ -12,6 +12,7 @@ dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.16"]
 crag-download = "car_manual_rag.ingest.download:main"
 crag-extract = "car_manual_rag.ingest.text:main"
 crag-chunk = "car_manual_rag.ingest.chunk:main"
+crag-figures = "car_manual_rag.ingest.figures:main"
 crag-catalog = "car_manual_rag.ingest.catalog:main"
 crag-index = "car_manual_rag.index:main"
 crag-ask = "car_manual_rag.ask:main"

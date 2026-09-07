@@ -30,6 +30,7 @@ Cada etapa es reanudable: al repetirla salta lo que ya está hecho.
 crag-download    # descarga los PDFs del catálogo -> data/raw/pdf/
 crag-extract     # extrae el texto, una línea por página -> data/interim/text/
 crag-chunk       # trocea el texto en fragmentos -> data/interim/chunks/
+crag-figures     # recorta las figuras de cada página -> data/interim/figures/
 ```
 
 
@@ -59,6 +60,7 @@ crag-ask SEAT_Ibiza_11.25 "¿cada cuánto se cambia el aceite?"
 | `crag-download` | Descarga los PDFs del catálogo |
 | `crag-extract` | Extrae el texto de cada página |
 | `crag-chunk` | Trocea el texto en fragmentos con su sección, página y remisiones |
+| `crag-figures` | Recorta en JPEG todas las figuras de los manuales |
 | `crag-catalog` | Explora el catálogo y valida que todo cuadra |
 | `crag-index` | Crea el índice de un manual |
 | `crag-ask` | Pregunta y responde mostrando los fragmentos |
@@ -128,6 +130,18 @@ manuales nuevos, `véase la página 158` en los viejos—. Ahora sale del texto 
 guarda como dato en `refs`, que es lo que permitirá convertirla en un enlace.
 Las remisiones a figuras se quedan: la figura es contenido, y ese número es lo
 único que ata un párrafo al dibujo impreso a su lado.
+
+**Las figuras se recortan renderizando la página, no extrayendo el bitmap.**
+Parece más directo sacar la imagen que el PDF ya lleva dentro, y es un error
+que solo se ve mirando el 8% de casos raros: los números de llamada —el 1, el 2
+y el 3 que atan el dibujo al texto— están dibujados **encima** como vectores, y
+el bitmap guarda la orientación que tuviera el maquetador, así que un esquema de
+asientos extraído en crudo sale tumbado y sin un solo número. Además el 98% son
+JPEG en CMYK, que un navegador no pinta. Renderizar la región resuelve las tres
+cosas de una vez y da RGB gratis. Se descartan las imágenes de menos de 10.000
+píxeles cuadrados: en el corpus, cortar entre 5.000 y 20.000 descarta siempre el
+mismo 8%, porque casi nada mide eso —son filetes y separadores, y las figuras de
+verdad empiezan en 190×190—.
 
 **El sistema se niega antes que adivinar.** Cada índice guarda el modelo que lo
 generó y un hash del texto del que salió; si alguno no cuadra, se rechaza en vez
