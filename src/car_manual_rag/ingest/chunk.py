@@ -3,7 +3,8 @@
     data/interim/text/SEAT_Ibiza_11.25.jsonl
     -> data/interim/chunks/SEAT_Ibiza_11.25.jsonl
        {"chunk_id": "SEAT_Ibiza_11.25:00042", "section": "Climatizacion",
-        "pages": [119, 120], "printed": ["117", "118"], "text": "..."}
+        "pages": [119, 120], "printed": ["117", "118"], "refs": [59],
+        "figures": [81], "text": "..."}
 
 The user picks brand, model, year and edition before asking, so a query never
 crosses manuals: the manual is the unit and no chunk ever mixes two of them.
@@ -17,7 +18,13 @@ What this stage undoes, all of it visible in the extracted text:
     the chunk, since it is the only structure the raw text layer preserves;
   * the table of contents and the alphabetical index, whose dotted leaders are
     pure navigation and would flood any search for a part name;
-  * the private-use glyphs left behind by the icon fonts.
+  * the private-use glyphs left behind by the icon fonts;
+  * the manual's own page cross-references ("=> pagina 14"), which send the
+    reader to a page. An answer that shows the content cannot send anybody
+    anywhere, so the reference leaves the text and stays as data.
+
+Cross-references to a figure are left in place. A figure is content, and the
+number is the only thing tying a passage to the drawing printed beside it.
 
 The head and foot are found by frequency, not by position: older manuals put
 the page number in the footer and newer ones in the header, so any fixed rule
@@ -50,6 +57,27 @@ PAGE_NUMBER = re.compile(r"\d{1,4}")
 HYPHEN_WRAP = re.compile(r"(\w)-\n(\w)")
 BULLET = re.compile(r"^\s*[●▪•–-]\s*")  # noqa: RUF001 - the en dash is a real bullet here
 FIGURE = re.compile(r"^Fig\.\s*\d")
+# The manual pointing elsewhere. Three glyphs are in use across the corpus --
+# the older manuals write '=>', the newer ones '>>>' and a few '>>' -- and what
+# follows is a page, a figure, or prose ('capitulo "Apoyacabezas"').
+REMISSION = r"[\u203a\u00bb\u21d2]+"
+# A page reference comes in two shapes. The newer manuals hang it off a glyph
+# ('>>> pag. 59'); the older ones write it into the sentence ('vease la pagina
+# 158', '"Airbags", pag. 38'). Both are stripped, so the leading verb, article
+# and comma are part of the match -- removing only the number would leave
+# 'consulte la' behind. Every optional word is bounded, or the 'de' inside
+# 'grande' would match and eat the word.
+PAGE_REF = re.compile(
+    r"(?i)[,;]?[^\S\n]*"
+    rf"(?:{REMISSION}[^\S\n]*)?"
+    r"(?:\b(?:v[ée]ase|ver|consulte|consultar)\b[^\S\n]*)?"
+    r"(?:\b(?:de|en)\b[^\S\n]*)?"
+    r"(?:\bla\b[^\S\n]*)?"
+    r"\bp[áa]g(?:ina|s)?\b\.?\s*(\d{1,4})"
+)
+FIG_REF = re.compile(r"\bfig\.?\s*(\d{1,4})", re.I)
+GLYPH = re.compile(rf"[^\S\n]*{REMISSION}[^\S\n]*")
+SPACES = re.compile(r"[^\S\n]{2,}")
 
 
 def lines_of(text):
@@ -135,6 +163,27 @@ def reflow(lines):
     return [p.strip() for p in paragraphs if p.strip()]
 
 
+def strip_remissions(text):
+    """Drop the page cross-references and report what the paragraph pointed at.
+
+    Returns the text without them, the pages it sent the reader to, and the
+    figures it named. A page reference is removed outright: the reader of an
+    answer has no manual open in front of them to turn to. A figure reference
+    stays, because the drawing is content and this number is what will find it.
+
+    Removing a reference can leave the sentence hanging ("averias del sistema
+    en."), since the manual wrote the pointer as part of the grammar. That is
+    accepted: a dangling preposition reads better than an instruction to turn
+    to a page nobody can see.
+    """
+    pages = [int(n) for n in PAGE_REF.findall(text)]
+    text = PAGE_REF.sub("", text)
+    figures = [int(n) for n in FIG_REF.findall(text)]
+    text = GLYPH.sub(" ", text).replace("\xa0", " ")
+    lines = [SPACES.sub(" ", line).strip() for line in text.split("\n")]
+    return "\n".join(line for line in lines if line), sorted(set(pages)), sorted(set(figures))
+
+
 def units_of(records):
     """Flatten a manual's pages into paragraphs tagged with page and section."""
     pages = [lines_of(r["text"]) for r in records]
@@ -217,7 +266,10 @@ def chunk(path, out_dir, target, overlap):
         sizes = []
         with tmp.open("w", encoding="utf-8") as fh:
             for i, group_units in enumerate(group(units, target, overlap)):
-                text = "\n".join(u["text"] for u in group_units)
+                # Cleaned here, on the assembled chunk, not paragraph by
+                # paragraph: a table row splits 'pag.' from its number across
+                # the join, and neither half is a reference on its own.
+                text, refs, figures = strip_remissions("\n".join(u["text"] for u in group_units))
                 pages = sorted({u["page"] for u in group_units})
                 printed = [p for p in dict.fromkeys(u["printed"] for u in group_units) if p]
                 fh.write(
@@ -228,6 +280,8 @@ def chunk(path, out_dir, target, overlap):
                             "section": group_units[0]["section"],
                             "pages": pages,
                             "printed": printed,
+                            "refs": refs,
+                            "figures": figures,
                             "text": text,
                         },
                         ensure_ascii=False,

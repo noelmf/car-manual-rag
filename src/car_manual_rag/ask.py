@@ -12,8 +12,12 @@ told to say when the fragments do not cover the question rather than fill the
 gap. And a manual's warnings are the part a paraphrase most easily softens, so
 they are to be carried over intact.
 
-Every claim carries the page printed on the paper, not the page of the PDF, so
-the reader can find it in their own copy.
+The answer does not send the reader to a page. It cannot: the fragments it was
+built from are shown underneath it in full, so the evidence is already on the
+screen. A page number would be an instruction to go and look somewhere that
+nobody has open, and the manual's own cross-references are dropped at chunking
+for the same reason. The pages stay in each fragment's record, for an interface
+that wants to show where a passage came from.
 """
 
 import argparse
@@ -22,9 +26,13 @@ import time
 
 from car_manual_rag.config import MODEL, required
 from car_manual_rag.gemini import call
-from car_manual_rag.index import TOP_K, cite, search
+from car_manual_rag.index import TOP_K, label, search
 
-MAX_TOKENS = 1024
+# The ceiling covers the model's thinking as well as its answer, and a
+# reasoning model spends most of it before writing a word: at 1024 this task
+# left 41 tokens for the answer and cut it off mid-procedure. Only what is
+# generated is billed, so the ceiling is set where no answer reaches it.
+MAX_TOKENS = 4096
 
 SYSTEM = """You answer questions about one car's owner manual.
 
@@ -34,10 +42,13 @@ Rules:
 - If the fragments do not contain the answer, say so plainly and do not invent
   one. Saying nothing beats saying something wrong: the reader is going to act
   on this.
-- Always cite the page in brackets at the end of each claim, in the (pag. N)
-  format that appears in each fragment.
+- Do not send the reader anywhere. No page numbers, no "see the section on
+  X": the fragments are printed under your answer, so say what they say.
 - If a fragment carries a safety warning, reproduce it; do not summarise it or
   soften it.
+- Write for someone standing next to the car: plain sentences, and a plain
+  list when the manual gives steps. No headings, no bold, and no preamble about
+  the manual or the fragments -- begin with the answer itself.
 - Answer in the language of the question, briefly and directly.
 """
 
@@ -45,9 +56,19 @@ Rules:
 def prompt(question, hits):
     """The fragments and the question, as the model sees them."""
     fragments = "\n\n".join(
-        f"--- Fragment {i} ({cite(hit)}) ---\n{hit['text']}" for i, hit in enumerate(hits, 1)
+        f"--- Fragment {i} ({label(hit)}) ---\n{hit['text']}" for i, hit in enumerate(hits, 1)
     )
     return f"{fragments}\n\n--- Question ---\n{question}"
+
+
+def seen(hits):
+    """The hits with any paragraph already shown by an earlier one removed."""
+    shown = set()
+    for hit in hits:
+        kept = [p for p in hit["text"].split("\n") if p not in shown]
+        shown.update(kept)
+        if kept:
+            yield dict(hit, text="\n".join(kept))
 
 
 def ask(manual_id, question, k=TOP_K):
@@ -67,6 +88,17 @@ def ask(manual_id, question, k=TOP_K):
     if not candidates:
         # A blocked or empty reply is not an answer; say why instead of ''.
         raise RuntimeError(f"no answer from {model}: {reply.get('promptFeedback', reply)}")
+
+    finish = candidates[0].get("finishReason")
+    if finish and finish != "STOP":
+        # Half a procedure reads exactly like a whole one, which is the failure
+        # this project exists to avoid. An answer that stopped early is not an
+        # answer, so it is refused rather than printed.
+        raise RuntimeError(
+            f"{model} stopped early ({finish}); the answer would be incomplete. "
+            f"MAX_TOKENS is {MAX_TOKENS}, and it covers the model's thinking too"
+        )
+
     parts = candidates[0].get("content", {}).get("parts") or []
     return {
         "answer": "".join(p.get("text", "") for p in parts).strip(),
@@ -99,8 +131,12 @@ def main():  # pragma: no cover - argparse and printing
         f"{result['usage'].get('totalTokenCount', '?')} tokens, "
         f"{time.time() - started:.1f}s --"
     )
-    for hit in result["hits"]:
-        print(f"   [{hit['score']:.3f}] {cite(hit)}")
+    # The fragments themselves, not a list of pages to go and look up. Printed
+    # once each: the chunker repeats a short paragraph across the seam between
+    # two chunks, and the reader should not read it twice.
+    for hit in seen(result["hits"]):
+        print(f"\n[{hit['score']:.3f}] {label(hit)}")
+        print(hit["text"])
     return 0
 
 

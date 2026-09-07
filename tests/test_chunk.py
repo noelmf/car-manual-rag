@@ -9,6 +9,97 @@ def lines(pages):
     return [chunk.lines_of(p["text"]) for p in pages]
 
 
+class TestRemissions:
+    """The manual's own cross-references, in the three glyphs the corpus uses.
+
+    The angle quotes below are the characters the manuals actually print, so
+    the RUF001 exemptions are deliberate: replacing them with '>' would test a
+    string no PDF contains.
+    """
+
+    def test_a_page_reference_leaves_the_text_and_becomes_data(self):
+        text, refs, _ = chunk.strip_remissions("Para más información ⇒página 14.")
+        assert text == "Para más información."
+        assert refs == [14]
+
+    def test_the_newer_manuals_write_it_with_arrows_and_hard_spaces(self):
+        text, refs, _ = chunk.strip_remissions("Testigo de aviso ›››\xa0pág.\xa024")  # noqa: RUF001
+        assert text == "Testigo de aviso"
+        assert refs == [24]
+
+    def test_every_reference_in_a_paragraph_is_collected(self):
+        text, refs, _ = chunk.strip_remissions(
+            "Kit antipinchazos ›››\xa0pág.\xa0319 Cambio de rueda ›››\xa0pág.\xa0311"  # noqa: RUF001
+        )
+        assert text == "Kit antipinchazos Cambio de rueda"
+        assert refs == [311, 319]
+
+    def test_a_figure_reference_stays_because_the_figure_is_content(self):
+        text, refs, figures = chunk.strip_remissions("contra un muro ⇒ fig. 1. Los pasajeros")
+        assert text == "contra un muro fig. 1. Los pasajeros"
+        assert refs == [] and figures == [1]
+
+    def test_a_remission_to_prose_keeps_its_words_and_loses_the_glyph(self):
+        text, refs, figures = chunk.strip_remissions('la posición ⇒capítulo "Apoyacabezas"')
+        assert text == 'la posición capítulo "Apoyacabezas"'
+        assert refs == [] and figures == []
+
+    def test_the_older_manuals_write_the_reference_into_the_sentence(self):
+        text, refs, _ = chunk.strip_remissions("Para más detalles consulte la página 164.")
+        assert text == "Para más detalles."
+        assert refs == [164]
+
+    def test_the_verb_and_article_go_with_it_so_nothing_dangles(self):
+        text, refs, _ = chunk.strip_remissions("del depósito, véase la página 158.")
+        assert text == "del depósito."
+        assert refs == [158]
+
+    def test_a_quoted_section_title_keeps_its_name_and_loses_the_page(self):
+        text, refs, _ = chunk.strip_remissions('Seguridad para niños", pág. 38')
+        assert text == 'Seguridad para niños"'
+        assert refs == [38]
+
+    def test_a_page_without_a_number_is_not_a_reference(self):
+        assert chunk.strip_remissions("la página web de SEAT")[0] == "la página web de SEAT"
+
+    def test_a_word_ending_in_de_is_not_eaten(self):
+        frase = "un maletero grande la caja"
+        assert chunk.strip_remissions(frase)[0] == frase
+
+    def test_a_reference_split_across_two_paragraphs_is_still_found(self):
+        # A table row puts 'pag.' and its number on either side of the join,
+        # which is why this runs on the assembled chunk and not on a paragraph.
+        text, refs, _ = chunk.strip_remissions("Cierre centraliz.\npág.\n127 Bloquear aut.")
+        assert "127" not in text
+        assert refs == [127]
+
+    def test_the_paragraph_break_survives_the_cleaning(self):
+        text, _, _ = chunk.strip_remissions("uno\ndos")
+        assert text == "uno\ndos"
+
+    def test_a_paragraph_that_was_only_a_reference_leaves_no_blank_line(self):
+        text, refs, _ = chunk.strip_remissions("uno\npág. 5\ndos")
+        assert text == "uno\ndos"
+        assert refs == [5]
+
+    def test_text_without_a_remission_is_returned_untouched(self):
+        assert chunk.strip_remissions("sin remision") == ("sin remision", [], [])
+
+    def test_the_reference_is_gone_from_the_written_chunk(self, tmp_path, pages):
+        pages[0]["text"] += "\nMás datos ⇒página 99.\n"
+        source = tmp_path / "SEAT_Test_01.25.jsonl"
+        source.write_text(
+            "\n".join(json.dumps(p, ensure_ascii=False) for p in pages), encoding="utf-8"
+        )
+        out = tmp_path / "out"
+        out.mkdir()
+        chunk.chunk(str(source), out, chunk.TARGET, chunk.OVERLAP)
+        written = (out / "SEAT_Test_01.25.jsonl").read_text(encoding="utf-8")
+        records = [json.loads(line) for line in written.splitlines()]
+        assert all("página 99" not in r["text"] for r in records)
+        assert any(99 in r["refs"] for r in records)
+
+
 class TestReflow:
     def test_joins_a_word_split_across_lines(self):
         assert chunk.reflow(["habita-", "culo."]) == ["habitaculo."]

@@ -48,6 +48,7 @@ crag-index SEAT_Ibiza_11.25
 
 # 3. Preguntar sobre un manual
 crag-ask SEAT_Ibiza_11.25 "¿cada cuánto se cambia el aceite?"
+# -> la respuesta, y debajo los fragmentos del manual de los que sale
 ```
 
 
@@ -57,10 +58,10 @@ crag-ask SEAT_Ibiza_11.25 "¿cada cuánto se cambia el aceite?"
 |---|---|
 | `crag-download` | Descarga los PDFs del catálogo |
 | `crag-extract` | Extrae el texto de cada página |
-| `crag-chunk` | Trocea el texto en fragmentos con su sección y página |
+| `crag-chunk` | Trocea el texto en fragmentos con su sección, página y remisiones |
 | `crag-catalog` | Explora el catálogo y valida que todo cuadra |
 | `crag-index` | Crea el índice de un manual |
-| `crag-ask` | Pregunta y responde citando la página |
+| `crag-ask` | Pregunta y responde mostrando los fragmentos |
 
 Todos aceptan `--help`.
 
@@ -117,9 +118,27 @@ inglés rinde peor. Usar el mismo proveedor para generar significa una clave, un
 transporte y una factura. Se piden 768 dimensiones en vez de las 3.072 nativas:
 el índice ocupa cuatro veces menos a cambio de algo de precisión.
 
+**La respuesta trae el contenido, no la página.** Una cita solo sirve si el
+lector tiene el manual delante; quien pregunta aquí no lo tiene, así que se le
+enseña el fragmento entero debajo de la respuesta y el modelo tiene prohibido
+remitir a ninguna parte. Eso obligó a limpiar el corpus, no solo el prompt: los
+manuales se remiten a sí mismos constantemente y el **36% de los fragmentos**
+llevaba una referencia a página dentro de su propio texto —`››› pág. 59` en los
+manuales nuevos, `véase la página 158` en los viejos—. Ahora sale del texto y se
+guarda como dato en `refs`, que es lo que permitirá convertirla en un enlace.
+Las remisiones a figuras se quedan: la figura es contenido, y ese número es lo
+único que ata un párrafo al dibujo impreso a su lado.
+
 **El sistema se niega antes que adivinar.** Cada índice guarda el modelo que lo
 generó y un hash del texto del que salió; si alguno no cuadra, se rechaza en vez
 de usarse. Las variables de entorno tampoco tienen valor por defecto. Unos
 vectores construidos sobre otro texto citan páginas equivocadas sin dar ninguna
 señal, y una cita falsa es peor que ninguna respuesta porque el lector va a
 actuar sobre ella.
+
+Por lo mismo, una respuesta que se corta se rechaza en vez de imprimirse. El
+modelo razona antes de escribir y ese razonamiento sale del mismo techo de
+tokens que la respuesta: con el techo en 1024, «¿cómo se cambia una rueda?»
+gastaba 979 tokens pensando y dejaba 41 para responder, así que el
+procedimiento se cortaba tras «aparque el vehículo en un lugar seguro». Medio
+procedimiento se lee igual que uno entero.

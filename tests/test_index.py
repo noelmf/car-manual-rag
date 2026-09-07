@@ -189,17 +189,19 @@ class TestSearch:
         assert all("score" not in c for c in corpus)
 
 
-class TestCite:
+class TestLabel:
+    def test_is_the_section_and_carries_no_page(self):
+        out = index.label({"section": "Frenos", "printed": ["10", "11"], "pages": [2, 3]})
+        assert out == "Frenos"
+        assert "10" not in out and "pag" not in out
+
+    def test_a_chunk_with_no_section_still_has_a_label(self):
+        assert index.label({"section": None, "printed": ["10"], "pages": [2]}) == "sin seccion"
+
+
+class TestPagesOf:
     def test_uses_the_printed_page_the_reader_can_see(self):
-        assert (
-            index.cite({"section": "Frenos", "printed": ["10", "11"], "pages": [2, 3]})
-            == "Frenos, pag. 10-11"
-        )
+        assert index.pages_of({"printed": ["10", "11"], "pages": [2, 3]}) == "10-11"
 
     def test_falls_back_to_the_pdf_page_when_none_was_printed(self):
-        assert "2-3" in index.cite({"section": "Frenos", "printed": [], "pages": [2, 3]})
-
-    def test_a_chunk_with_no_section_still_cites(self):
-        assert (
-            index.cite({"section": None, "printed": ["10"], "pages": [2]}) == "sin seccion, pag. 10"
-        )
+        assert index.pages_of({"printed": [], "pages": [2, 3]}) == "2-3"

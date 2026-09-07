@@ -136,14 +136,20 @@ def search(manual_id, question, k=TOP_K):
     return [dict(chunks[i], score=float(scores[i])) for i in best]
 
 
-def cite(chunk):
-    """How a chunk is referred to in an answer: the page the reader can see.
+def label(chunk):
+    """How a fragment is introduced: the section it belongs to, and no more.
 
-    ask.SYSTEM tells the model to reproduce the '(pag. N)' this produces, so
-    the two have to change together.
+    The page stays in the record for an interface to use, but it is kept away
+    from the model deliberately. An answer built from fragments the reader is
+    shown in full has nowhere to send them, and a page number placed in front
+    of the model is a page number it will repeat.
     """
-    pages = chunk["printed"] or [str(p) for p in chunk["pages"]]
-    return f"{chunk['section'] or 'sin seccion'}, pag. {'-'.join(pages)}"
+    return chunk["section"] or "sin seccion"
+
+
+def pages_of(chunk):
+    """The pages a chunk came from, printed numbers first -- for humans."""
+    return "-".join(chunk["printed"] or [str(p) for p in chunk["pages"]])
 
 
 def main():  # pragma: no cover - argparse and printing
@@ -161,7 +167,9 @@ def main():  # pragma: no cover - argparse and printing
         if args.search:
             started = time.time()
             for hit in search(args.manual, args.search, args.k):
-                print(f"\n[{hit['score']:.3f}] {cite(hit)}  {hit['chunk_id']}")
+                print(
+                    f"\n[{hit['score']:.3f}] {label(hit)}, pag. {pages_of(hit)}  {hit['chunk_id']}"
+                )
                 print(f"  {hit['text'][:300]}...")
             print(f"\nsearched in {time.time() - started:.1f}s")
             return 0
