@@ -78,6 +78,28 @@ Un stream que acaba sin `done` ni `error` no terminó, y quien lo pinte tiene qu
 decirlo: medio procedimiento se lee igual que uno entero.
 
 
+## Interfaz web
+
+Esqueleto de React con Vite, en `web/`. De momento solo pinta el nombre del
+proyecto.
+
+```bash
+pnpm --dir web install
+pnpm --dir web run build      # -> web/dist, que crag-serve sirve
+./.venv/bin/crag-serve        # http://127.0.0.1:8000
+```
+
+Para trabajar en el front, Vite lo sirve con recarga en caliente y manda `/api`
+al servidor de Python, así que corren los dos a la vez:
+
+```bash
+./.venv/bin/crag-serve        # una terminal
+pnpm --dir web run dev        # otra: http://localhost:5173
+```
+
+En desarrollo se abre el 5173, no el 8000.
+
+
 ## Comandos
 
 | Comando | Para qué |

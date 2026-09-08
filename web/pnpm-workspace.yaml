@@ -1,0 +1,5 @@
+# pnpm refuses install scripts unless they are approved here. esbuild is
+# Vite's bundler and its script is what puts the platform binary in place,
+# so a build fails without it.
+allowBuilds:
+  esbuild: true
