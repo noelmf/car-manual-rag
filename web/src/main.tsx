@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import App from "./App";
+import "./styles.css";
 
 // index.html carries this element, so its absence is a broken build rather
 // than something to paper over with a non-null assertion.

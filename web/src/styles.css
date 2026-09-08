@@ -1,0 +1,198 @@
+/* One plain stylesheet: no framework, no preprocessor.
+ *
+ * Colour lives in tokens declared three times over -- once bare, once behind
+ * the dark media query, once behind an explicit [data-theme] -- because the
+ * viewer has three states, not two. Most people never pick a theme, and that
+ * unstamped default is the one the media query has to cover. */
+
+:root {
+  --ground: #eeedf2;
+  --surface: #ffffff;
+  --surface-sunk: #f5f4f8;
+  --ink: #1a181f;
+  --muted: #625d6e;
+  --faint: #8d879a;
+  --line: #d9d5e0;
+  --line-strong: #bfb9ca;
+  --accent: #6d28d9;
+  --accent-ink: #ffffff;
+  --focus: #7c3aed;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(26, 24, 31, 0.06), 0 8px 24px -12px rgba(26, 24, 31, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #16141a;
+    --surface: #1e1b24;
+    --surface-sunk: #26232e;
+    --ink: #e9e6ee;
+    --muted: #a09aab;
+    --faint: #746e80;
+    --line: #322e3a;
+    --line-strong: #433e4d;
+    --accent: #a78bfa;
+    --accent-ink: #16141a;
+    --focus: #c4b5fd;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.7);
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground: #16141a;
+  --surface: #1e1b24;
+  --surface-sunk: #26232e;
+  --ink: #e9e6ee;
+  --muted: #a09aab;
+  --faint: #746e80;
+  --line: #322e3a;
+  --line-strong: #433e4d;
+  --accent: #a78bfa;
+  --accent-ink: #16141a;
+  --focus: #c4b5fd;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.7);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 400 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  max-width: 43rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 4rem;
+  display: grid;
+  gap: 2rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+/* ---- composer ---- */
+.composer {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: grid;
+  transition: border-color 0.15s ease;
+}
+
+.composer:focus-within {
+  border-color: var(--line-strong);
+}
+
+.composer textarea {
+  /* Three lines, and it stays three: past that it scrolls rather than pushing
+     the send button down the page. */
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  resize: none;
+  padding: 0.9rem 0.9rem 0.25rem;
+  line-height: 1.55;
+  height: calc(1.55em * 3 + 1.15rem);
+  overflow-y: auto;
+}
+
+.composer textarea:focus {
+  outline: none;
+}
+
+.composer textarea::placeholder {
+  color: var(--faint);
+}
+
+.composer-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 0.6rem 0.6rem;
+}
+
+/* Helper text sits under the box, not inside it: the composer holds what you
+   operate, and this is something you read once and stop noticing. */
+.hint {
+  margin: 0.55rem 0.25rem 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--faint);
+}
+
+.hint kbd {
+  font: inherit;
+  background: var(--surface-sunk);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+  color: var(--muted);
+}
+
+/* ---- send button: an arrow that points up ---- */
+.send {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    background 0.15s ease;
+}
+
+.send:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.send:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.send:disabled {
+  background: var(--surface-sunk);
+  color: var(--faint);
+  cursor: not-allowed;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.send:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.send svg {
+  display: block;
+}
+
+/* Only what the screen reader needs. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
