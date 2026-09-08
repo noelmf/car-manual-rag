@@ -1,7 +1,10 @@
 name: checks
 
-# The same rules the pre-commit hook enforces, run where nobody can skip them:
-# the hook only applies to checkouts that ran `git config core.hooksPath hooks`.
+# The rules the pre-commit hook enforces, run where nobody can skip them: the
+# hook only applies to checkouts that ran `git config core.hooksPath hooks`.
+#
+# The web job has no hook behind it at all, so this is the only place the
+# front-end's types and tests are checked.
 
 on:
   push:
@@ -39,9 +42,60 @@ jobs:
 
       # One upload per commit is enough; the report is identical across the
       # matrix and two uploads only make Codecov merge them back together.
+      #
+      # The flag keeps this figure apart from the web one. Merged, a front end
+      # of two files would vanish inside a backend of eight hundred statements
+      # and a drop there would never show.
       - if: matrix.python-version == '3.13'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
+          flags: python
           fail_ci_if_error: true
+
+  web:
+    # Its own job rather than more steps on the Python one: they share no
+    # tooling, and a failure in either should not hide the other.
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The pnpm version comes from web/package.json's packageManager field,
+      # so it is declared once and CI follows the checkout.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      # --frozen-lockfile: CI installs what the lockfile says or it fails,
+      # rather than quietly resolving something else.
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      # Measures coverage as it goes, the way `pytest --cov` does on the
+      # other side, so the documented command is the same one CI runs.
+      - run: pnpm test
+
+      - uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: web/coverage/lcov.info
+          flags: web
+          fail_ci_if_error: true
+
+      # tsc runs again inside this, which is cheap and worth it: a build also
+      # catches what type checking alone does not, such as an import that
+      # resolves for the checker but not for the bundler.
+      - run: pnpm build

@@ -125,11 +125,32 @@ Todos aceptan `--help`.
 Mide cobertura de rama y falla por debajo del 96%. El umbral y el alcance
 viven en `pyproject.toml`, así que la orden es la misma aquí que en CI.
 
-Los mismos `ruff` y `pytest` corren en cada push. Para que `ruff` rechace
-también los commits locales, una vez por checkout:
+El front se prueba aparte, con Vitest y Testing Library:
+
+```bash
+pnpm --dir web run test         # una pasada, con cobertura
+pnpm --dir web run test:watch   # en watch, sin cobertura
+pnpm --dir web run typecheck    # solo los tipos
+```
+
+Vitest lee `web/vite.config.ts`, así que los tests resuelven los imports igual
+que la aplicación y no hay una segunda cadena de build que mantener al día. Los
+tests pulsan las teclas que pulsa una persona en vez de asomarse al estado del
+componente.
+
+Codecov recibe **dos informes con flag propio**, `python` y `web`, no uno
+mezclado: un front de dos ficheros desaparecería dentro de un backend de
+ochocientas sentencias y una caída ahí no se vería nunca.
+
+En cada push corren las dos mitades: `ruff` y `pytest` por un lado, y
+`typecheck`, `test` y `build` por el otro. Para que `ruff` rechace también los
+commits locales, una vez por checkout:
 
 ```bash
 git config core.hooksPath hooks
 ```
+
+Ese hook solo mira Python, así que CI es el único sitio donde se comprueban los
+tipos y los tests del front.
 
 
