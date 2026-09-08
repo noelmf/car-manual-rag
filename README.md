@@ -2,6 +2,7 @@
 
 [![checks](https://github.com/noelmf/car-manual-rag/actions/workflows/checks.yml/badge.svg)](https://github.com/noelmf/car-manual-rag/actions/workflows/checks.yml)
 [![codecov](https://codecov.io/gh/noelmf/car-manual-rag/branch/main/graph/badge.svg)](https://codecov.io/gh/noelmf/car-manual-rag)
+![status](https://img.shields.io/badge/status-work%20in%20progress-yellow)
 
 Sistema RAG (Retrieval Augmented Generation) sobre manuales de usuario de
 coches. 
