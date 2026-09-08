@@ -1,8 +1,7 @@
 # car-manual-rag
 
 [![checks](https://github.com/noelmf/car-manual-rag/actions/workflows/checks.yml/badge.svg)](https://github.com/noelmf/car-manual-rag/actions/workflows/checks.yml)
-[![codecov python](https://codecov.io/gh/noelmf/car-manual-rag/branch/main/graph/badge.svg?flag=python)](https://app.codecov.io/gh/noelmf/car-manual-rag)
-[![codecov web](https://codecov.io/gh/noelmf/car-manual-rag/branch/main/graph/badge.svg?flag=web)](https://app.codecov.io/gh/noelmf/car-manual-rag)
+[![codecov](https://codecov.io/gh/noelmf/car-manual-rag/branch/main/graph/badge.svg)](https://app.codecov.io/gh/noelmf/car-manual-rag/tree/main)
 ![status](https://img.shields.io/badge/status-work%20in%20progress-yellow)
 
 Sistema RAG (Retrieval Augmented Generation) sobre manuales de usuario de
@@ -139,9 +138,11 @@ que la aplicación y no hay una segunda cadena de build que mantener al día. Lo
 tests pulsan las teclas que pulsa una persona en vez de asomarse al estado del
 componente.
 
-Codecov recibe **dos informes con flag propio**, `python` y `web`, no uno
-mezclado: un front de dos ficheros desaparecería dentro de un backend de
-ochocientas sentencias y una caída ahí no se vería nunca.
+Codecov recibe **dos informes con flag propio**, `python` y `web`. El badge
+muestra la cifra de la rama, que es la de las dos mitades juntas; para ver cada
+una por separado están los flags en Codecov. El front son 82 sentencias frente a
+las 815 de Python, así que pesa poco en la media pero no desaparece: si cayera
+al 50%, la cifra combinada bajaría del 98% al 94%.
 
 En cada push corren las dos mitades: `ruff` y `pytest` por un lado, y
 `typecheck`, `test` y `build` por el otro. Para que `ruff` rechace también los
