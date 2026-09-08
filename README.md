@@ -1,7 +1,8 @@
 # car-manual-rag
 
 [![checks](https://github.com/noelmf/car-manual-rag/actions/workflows/checks.yml/badge.svg)](https://github.com/noelmf/car-manual-rag/actions/workflows/checks.yml)
-[![codecov](https://codecov.io/gh/noelmf/car-manual-rag/branch/main/graph/badge.svg)](https://codecov.io/gh/noelmf/car-manual-rag)
+[![python](https://img.shields.io/codecov/c/github/noelmf/car-manual-rag?flag=python&label=python)](https://codecov.io/gh/noelmf/car-manual-rag?flags[0]=python)
+[![web](https://img.shields.io/codecov/c/github/noelmf/car-manual-rag?flag=web&label=web)](https://codecov.io/gh/noelmf/car-manual-rag?flags[0]=web)
 ![status](https://img.shields.io/badge/status-work%20in%20progress-yellow)
 
 Sistema RAG (Retrieval Augmented Generation) sobre manuales de usuario de

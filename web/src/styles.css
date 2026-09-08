@@ -15,6 +15,7 @@
   --line: #d9d5e0;
   --line-strong: #bfb9ca;
   --accent: #6d28d9;
+  --accent-soft: #ede9fe;
   --accent-ink: #ffffff;
   --focus: #7c3aed;
   --radius: 14px;
@@ -32,6 +33,7 @@
     --line: #322e3a;
     --line-strong: #433e4d;
     --accent: #a78bfa;
+    --accent-soft: #2c2440;
     --accent-ink: #16141a;
     --focus: #c4b5fd;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.7);
@@ -48,6 +50,7 @@
   --line: #322e3a;
   --line-strong: #433e4d;
   --accent: #a78bfa;
+  --accent-soft: #2c2440;
   --accent-ink: #16141a;
   --focus: #c4b5fd;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.7);
@@ -195,4 +198,129 @@ h1 {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ---- picker ---- */
+.picker {
+  position: relative;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.box {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0 0.8rem;
+  transition: border-color 0.15s ease;
+}
+
+.box:focus-within {
+  border-color: var(--accent);
+}
+
+.box svg {
+  flex: none;
+  color: var(--faint);
+}
+
+/* A chosen vehicle is an answer, not a query: it takes the accent, and the
+   magnifier has nothing left to offer. */
+.box.picked input {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.box input {
+  flex: 1;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  padding: 0.85rem 0;
+  min-width: 0;
+}
+
+.box input:focus {
+  outline: none;
+}
+
+.box input::placeholder {
+  color: var(--faint);
+}
+
+.clear {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font: 400 1.1rem/1 inherit;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+  border-radius: 6px;
+}
+
+.clear:hover {
+  color: var(--ink);
+}
+
+.clear:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.list {
+  position: absolute;
+  z-index: 5;
+  inset: calc(100% + 0.4rem) 0 auto 0;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  max-height: 20rem;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+/* One line, one size, one colour: a row reads as a sentence rather than as
+   four columns, and nothing in it matters more than the rest. */
+.option {
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.option[aria-selected="true"] {
+  background: var(--accent-soft);
+}
+
+.option mark {
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.empty,
+.more {
+  padding: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--faint);
+}
+
+.more {
+  border-top: 1px solid var(--line);
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
 }
