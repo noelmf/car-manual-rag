@@ -39,6 +39,7 @@ ENV_FILE = ROOT / ".env"
 API_KEY = "GEMINI_API_KEY"
 EMBEDDING = "GEMINI_EMBEDDING"
 MODEL = "GEMINI_MODEL"
+THINKING = "GEMINI_THINKING"
 
 # Every setting, with where to get it. None has a default: an index is only
 # meaningful next to the model that built it, so guessing is the one thing
@@ -48,6 +49,13 @@ SETTINGS = {
     EMBEDDING: "e.g. gemini-embedding-001",
     MODEL: "e.g. gemini-3.6-flash",
 }
+
+# The one setting allowed to be absent, and it earns the exception: the others
+# decide what an answer means, while this only decides how long the model
+# deliberates before writing one. It is also the only setting a model can
+# reject -- 'thinkingLevel' is a Gemini 3 spelling -- so unset has to mean the
+# field is never sent, and a model that never heard of it keeps working.
+OPTIONAL = {THINKING: "low, medium or high; unset lets the model decide"}
 
 _loaded = False
 
@@ -85,3 +93,9 @@ def required(name):
     if not value:
         raise LookupError(f"{name} is not set -- {SETTINGS.get(name, 'see .env.example')}")
     return value
+
+
+def optional(name):
+    """A setting that may be absent, in which case the caller sends nothing."""
+    load_env()
+    return os.environ.get(name) or None

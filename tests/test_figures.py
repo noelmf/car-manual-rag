@@ -180,6 +180,20 @@ class TestLoading:
         assert len(figures.on_pages("SEAT_Test_01.25", [1, 2], out)) == 1
 
 
+class TestByPage:
+    def test_groups_the_figures_by_the_page_they_are_printed_on(self, manual, tmp_path):
+        out = tmp_path / "out"
+        figures.cut(str(manual()), out)
+        grouped = figures.by_page("SEAT_Test_01.25", out)
+        assert list(grouped) == [1]
+        assert grouped[1][0]["file"] == "p0001_1.jpg"
+
+    def test_a_manual_without_figures_is_empty_not_an_error(self, tmp_path):
+        # Answering is not held up by a stage nobody has run: a missing drawing
+        # leaves the answer poorer, not wrong.
+        assert figures.by_page("SEAT_Nada_01.25", tmp_path) == {}
+
+
 class TestReport:
     def test_a_healthy_run_raises_no_flag(self):
         assert not figures.report(

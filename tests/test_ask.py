@@ -2,11 +2,15 @@
 
 import pytest
 
-from car_manual_rag import ask
+from car_manual_rag import ask, config
 
 
 @pytest.fixture(autouse=True)
 def settings(monkeypatch):
+    # The developer's own .env must not reach these tests. load_env() only
+    # fills in what is missing, so a variable a test wants absent would be put
+    # back from the file; marking the file as already read stops that.
+    monkeypatch.setattr(config, "_loaded", True)
     for name, value in [
         ("GEMINI_API_KEY", "clave"),
         ("GEMINI_EMBEDDING", "emb"),
@@ -75,6 +79,76 @@ class TestSeen:
     def test_the_rest_of_the_hit_is_carried_through(self):
         out = list(ask.seen(self.hits("uno")))
         assert out[0]["score"] == HITS[0]["score"] and out[0]["section"] == "Frenos"
+
+
+class TestThinkingBudget:
+    """GEMINI_THINKING is optional, and sent only when it is set."""
+
+    def test_nothing_is_sent_when_it_is_unset(self, monkeypatch):
+        monkeypatch.delenv("GEMINI_THINKING", raising=False)
+        config = ask.payload_for("¿cuando?", HITS)["generationConfig"]
+        assert "thinkingConfig" not in config
+
+    def test_the_level_is_sent_when_it_is_set(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_THINKING", "low")
+        config = ask.payload_for("¿cuando?", HITS)["generationConfig"]
+        assert config["thinkingConfig"] == {"thinkingLevel": "low"}
+
+    def test_an_empty_value_counts_as_unset(self, monkeypatch):
+        # A model that never heard of the field rejects the whole request, so
+        # an empty line in .env must not turn into one.
+        monkeypatch.setenv("GEMINI_THINKING", "")
+        assert "thinkingConfig" not in ask.payload_for("¿cuando?", HITS)["generationConfig"]
+
+    def test_the_answer_is_still_pinned_to_the_manual(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_THINKING", "low")
+        config = ask.payload_for("¿cuando?", HITS)["generationConfig"]
+        assert config["temperature"] == 0 and config["maxOutputTokens"] == ask.MAX_TOKENS
+
+
+class TestStreaming:
+    """Three events: hits once, token many times, then done or error."""
+
+    def run(self, monkeypatch, chunks):
+        monkeypatch.setattr(ask, "search", lambda *a, **k: HITS)
+        monkeypatch.setattr(ask, "stream", lambda *a, **k: iter(chunks))
+        return list(ask.ask_stream("M", "¿cuando?"))
+
+    def said(self, text, finish=None):
+        candidate = {"content": {"parts": [{"text": text}]}}
+        if finish:
+            candidate["finishReason"] = finish
+        return {"candidates": [candidate], "usageMetadata": {"totalTokenCount": 9}}
+
+    def test_the_fragments_come_first_so_there_is_something_to_read(self, monkeypatch):
+        events = self.run(monkeypatch, [self.said("Cada", "STOP")])
+        assert events[0]["event"] == "hits"
+        assert events[0]["hits"] == HITS
+
+    def test_each_piece_of_prose_is_its_own_event(self, monkeypatch):
+        events = self.run(monkeypatch, [self.said("Cada "), self.said("dos anos.", "STOP")])
+        assert [e["text"] for e in events if e["event"] == "token"] == ["Cada ", "dos anos."]
+
+    def test_a_finished_answer_ends_with_done(self, monkeypatch):
+        events = self.run(monkeypatch, [self.said("Vale.", "STOP")])
+        assert events[-1]["event"] == "done"
+        assert events[-1]["tokens"] == 9
+
+    def test_an_answer_cut_off_ends_with_error_not_done(self, monkeypatch):
+        # The reader has already seen the beginning; the only honest thing left
+        # is to say the rest never came.
+        events = self.run(monkeypatch, [self.said("Aparque el vehic", "MAX_TOKENS")])
+        assert events[-1]["event"] == "error"
+        assert "MAX_TOKENS" in events[-1]["error"]
+        assert not any(e["event"] == "done" for e in events)
+
+    def test_a_stream_that_never_says_why_it_stopped_is_an_error(self, monkeypatch):
+        events = self.run(monkeypatch, [self.said("A medias")])
+        assert events[-1]["event"] == "error"
+
+    def test_an_empty_chunk_yields_no_token(self, monkeypatch):
+        events = self.run(monkeypatch, [self.said(""), self.said("Vale.", "STOP")])
+        assert len([e for e in events if e["event"] == "token"]) == 1
 
 
 class TestUnfinished:

@@ -24,8 +24,8 @@ import argparse
 import sys
 import time
 
-from car_manual_rag.config import MODEL, required
-from car_manual_rag.gemini import call
+from car_manual_rag.config import MODEL, THINKING, optional, required
+from car_manual_rag.gemini import call, stream
 from car_manual_rag.index import TOP_K, label, search
 
 # The ceiling covers the model's thinking as well as its answer, and a
@@ -71,18 +71,84 @@ def seen(hits):
             yield dict(hit, text="\n".join(kept))
 
 
+def payload_for(question, hits):
+    """The request body, the same whether the reply is buffered or streamed.
+
+    Zero temperature: the answer should be what the manual says, and the same
+    question twice should not give two different figures.
+
+    GEMINI_THINKING, when set, decides how long the model deliberates before
+    writing. It is sent only when set, because the field is a Gemini 3 spelling
+    and an older model refuses the whole request over it.
+    """
+    config = {"temperature": 0, "maxOutputTokens": MAX_TOKENS}
+    level = optional(THINKING)
+    if level:
+        config["thinkingConfig"] = {"thinkingLevel": level}
+    return {
+        "contents": [{"role": "user", "parts": [{"text": prompt(question, hits)}]}],
+        "systemInstruction": {"parts": [{"text": SYSTEM}]},
+        "generationConfig": config,
+    }
+
+
+def spoken(chunk):
+    """The text, finish reason and usage carried by one streamed chunk."""
+    candidate = (chunk.get("candidates") or [{}])[0]
+    parts = candidate.get("content", {}).get("parts") or []
+    return (
+        "".join(p.get("text", "") for p in parts),
+        candidate.get("finishReason"),
+        chunk.get("usageMetadata") or {},
+    )
+
+
+def ask_stream(manual_id, question, k=TOP_K):
+    """The same answer as ask(), in the order a reader can start using it.
+
+    The fragments exist half a second after the question and the prose takes
+    seconds more, so they go out as soon as they are found instead of waiting
+    behind it. They are also the part that matters most: the answer is built
+    from them and they are what the reader checks it against.
+
+    Three events. 'hits' once, 'token' many times, and then exactly one of
+    'done' or 'error'. A stream that stops without either did not finish, and
+    whoever renders it has to say so -- half a procedure reads like a whole
+    one, and by the time the model stops the reader has already read it.
+
+    Nothing is yielded before search() has run, so a manual that is not indexed
+    still fails before a single byte has been promised to anybody.
+    """
+    model = required(MODEL)
+    hits = search(manual_id, question, k)  # never builds; see index.load
+    yield {"event": "hits", "hits": hits}
+
+    finish, usage = None, {}
+    for chunk in stream(model, "streamGenerateContent", payload_for(question, hits)):
+        text, reason, counted = spoken(chunk)
+        if text:
+            yield {"event": "token", "text": text}
+        finish = reason or finish
+        usage = counted or usage
+
+    if finish != "STOP":
+        yield {
+            "event": "error",
+            "error": f"{model} stopped early ({finish}); the answer is incomplete",
+        }
+        return
+    yield {
+        "event": "done",
+        "model": model,
+        "tokens": usage.get("totalTokenCount"),
+    }
+
+
 def ask(manual_id, question, k=TOP_K):
     """Search the manual and answer from what comes back."""
     model = required(MODEL)
     hits = search(manual_id, question, k)  # never builds; see index.load
-    payload = {
-        "contents": [{"role": "user", "parts": [{"text": prompt(question, hits)}]}],
-        "systemInstruction": {"parts": [{"text": SYSTEM}]},
-        # Zero temperature: the answer should be what the manual says, and the
-        # same question twice should not give two different figures.
-        "generationConfig": {"temperature": 0, "maxOutputTokens": MAX_TOKENS},
-    }
-    reply = call(model, "generateContent", payload)
+    reply = call(model, "generateContent", payload_for(question, hits))
 
     candidates = reply.get("candidates") or []
     if not candidates:

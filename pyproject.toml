@@ -16,6 +16,7 @@ crag-figures = "car_manual_rag.ingest.figures:main"
 crag-catalog = "car_manual_rag.ingest.catalog:main"
 crag-index = "car_manual_rag.index:main"
 crag-ask = "car_manual_rag.ask:main"
+crag-serve = "car_manual_rag.server:main"
 
 [build-system]
 requires = ["setuptools>=68"]

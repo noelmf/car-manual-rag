@@ -148,6 +148,22 @@ def on_pages(manual_id, pages, out_root=FIGURE_DIR):
     return [f for f in load(manual_id, out_root) if f["page"] in wanted]
 
 
+def by_page(manual_id, out_root=FIGURE_DIR):
+    """Every figure of a manual, grouped by the page it is printed on.
+
+    Empty when the manual has no figures yet. Answering is not held up by a
+    stage that has not been run: a missing drawing leaves the answer poorer,
+    not wrong, and the fragments still say what the manual says.
+    """
+    grouped = {}
+    try:
+        for figure in load(manual_id, out_root):
+            grouped.setdefault(figure["page"], []).append(figure)
+    except LookupError:
+        return {}
+    return grouped
+
+
 def report(stats):
     """Print a validation summary and return True if anything looks wrong."""
     failed = [s for s in stats if "error" in s]

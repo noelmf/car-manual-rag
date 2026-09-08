@@ -86,6 +86,51 @@ class TestFetch:
         assert hasattr(e.value, "body")
 
 
+class TestOpened:
+    """The streaming way in: retried until the response exists, never after."""
+
+    def test_hands_back_the_response_itself_unread(self, monkeypatch):
+        responder(monkeypatch, [b"hola"])
+        response = net.opened("req", 10)
+        assert response.read() == b"hola"  # still the caller's to read
+
+    def test_retries_a_rate_limit_then_succeeds(self, monkeypatch, no_sleeping):
+        calls = responder(monkeypatch, [http_error(429), b"ok"])
+        assert net.opened("req", 10).read() == b"ok"
+        assert len(calls) == 2
+
+    def test_does_not_retry_a_bad_request(self, monkeypatch):
+        calls = responder(monkeypatch, [http_error(400)])
+        with pytest.raises(urllib.error.HTTPError):
+            net.opened("req", 10)
+        assert len(calls) == 1
+
+    def test_gives_up_after_the_last_attempt(self, monkeypatch, no_sleeping):
+        calls = responder(monkeypatch, [http_error(503)] * net.RETRIES)
+        with pytest.raises(urllib.error.HTTPError):
+            net.opened("req", 10)
+        assert len(calls) == net.RETRIES
+
+    def test_retries_a_refused_connection(self, monkeypatch, no_sleeping):
+        calls = responder(monkeypatch, [urllib.error.URLError("refused"), b"ok"])
+        assert net.opened("req", 10).read() == b"ok"
+        assert len(calls) == 2
+
+    def test_a_stall_is_visible_rather_than_silent(self, monkeypatch, no_sleeping):
+        lines = []
+        responder(monkeypatch, [http_error(429), b"ok"])
+        net.opened("req", 10, note=lines.append)
+        assert "HTTP 429" in lines[0]
+
+    def test_the_body_survives_for_the_caller_to_report(self, monkeypatch):
+        error = http_error(400)
+        error.read = lambda: b"por que"
+        responder(monkeypatch, [error])
+        with pytest.raises(urllib.error.HTTPError) as raised:
+            net.opened("req", 10)
+        assert raised.value.body == b"por que"
+
+
 class TestFetchWhenTheNetworkGoesAway:
     """A 429 answers; a dropped connection does not, and takes a different path."""
 
@@ -135,6 +180,66 @@ class TestProgress:
         responder(monkeypatch, [b"ok"])
         net.fetch("req", 10, note=lines.append)
         assert lines == []
+
+
+class TestGeminiStream:
+    """Streaming asks the same endpoint a different way and reads SSE lines."""
+
+    def sse(self, *payloads):
+        class FakeStream(FakeResponse):
+            def __init__(self, lines):
+                super().__init__(b"")
+                self._lines = lines
+
+            def __iter__(self):
+                return iter(self._lines)
+
+        import json as _json
+
+        return FakeStream(
+            [b": comentario\n", b"\n"]
+            + [b"data: " + _json.dumps(p).encode() + b"\n" for p in payloads]
+        )
+
+    def test_reads_only_the_data_lines(self):
+        out = list(gemini.chunks(self.sse({"a": 1}, {"a": 2})))
+        assert out == [{"a": 1}, {"a": 2}]
+
+    def test_asks_for_server_sent_events_on_the_streaming_verb(self, monkeypatch):
+        seen = {}
+
+        def fake_opened(request, timeout, **kw):
+            seen["url"] = request.full_url
+            return self.sse({"a": 1})
+
+        monkeypatch.setattr(gemini, "opened", fake_opened)
+        monkeypatch.setenv("GEMINI_API_KEY", "clave")
+        list(gemini.stream("modelo", "streamGenerateContent", {}))
+        assert seen["url"].endswith("/models/modelo:streamGenerateContent?alt=sse")
+
+    def test_the_connection_opens_before_a_single_chunk_is_asked_for(self, monkeypatch):
+        # A caller relaying this has to learn of a refusal while it can still
+        # answer with a status code, so the failure cannot wait for iteration.
+        def refuses(request, timeout, **kw):
+            error = http_error(400)
+            error.body = b"malo"
+            raise error
+
+        monkeypatch.setattr(gemini, "opened", refuses)
+        monkeypatch.setenv("GEMINI_API_KEY", "clave")
+        with pytest.raises(RuntimeError, match="malo"):
+            gemini.stream("modelo", "streamGenerateContent", {})
+
+    def test_the_error_names_the_code_gemini_gave(self, monkeypatch):
+        def refuses(request, timeout, **kw):
+            error = http_error(429)
+            error.body = b"despacio"
+            raise error
+
+        monkeypatch.setattr(gemini, "opened", refuses)
+        monkeypatch.setenv("GEMINI_API_KEY", "clave")
+        with pytest.raises(RuntimeError, match="429"):
+            gemini.stream("modelo", "streamGenerateContent", {})
 
 
 class TestGeminiRetryDelay:

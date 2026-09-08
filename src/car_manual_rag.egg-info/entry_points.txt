@@ -6,3 +6,4 @@ crag-download = car_manual_rag.ingest.download:main
 crag-extract = car_manual_rag.ingest.text:main
 crag-figures = car_manual_rag.ingest.figures:main
 crag-index = car_manual_rag.index:main
+crag-serve = car_manual_rag.server:main
